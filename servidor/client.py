@@ -57,6 +57,6 @@ class Chat:
     def EnviarMensagem(self):
         mensagem = self.envia_mensagem.get()
         self.client.send(mensagem.encode())
-        #teste commit reverso
+        #teste commit rever
     
 chat = Chat()        
