@@ -105,7 +105,13 @@ def registrar_sessao_avulsa():
             print("Opção inválida. Tente novamente.")
 
     nome = input("Nome do animal: ")
-    peso = float(input("Peso do animal (kg): "))
+    while True:
+        try:
+            peso = float(input("Peso do animal (kg): "))
+            break
+        except ValueError:
+            print("Digite um valor numérico válido para o peso.")
+    
     
     # Verificar fármacos disponíveis antes de pedir o ID
     with Session(engine) as session:
@@ -129,19 +135,24 @@ def registrar_sessao_avulsa():
             except ValueError:
                 print("Digite um número válido.")
     
-    dose = float(input("Dose utilizada (ml): "))
+    while True:
+        try:
+            dose = float(input("Dose utilizada (ml): "))
+            break
+        except ValueError:
+            print("Digite um valor numérico válido para a dose.")
     obs = input("Observações (opcional): ")
 
-    # Criar a sessão com todos os campos
+    
     with Session(engine) as session:
         sessao = SessaoAvulsaAnestesia(
             especie=especie,
             nome_animal=nome,
             peso_kg=peso,
-            id_farmaco=id_farmaco,  # Incluindo o ID do fármaco
-            dose_utilizada_ml=dose,  # Incluindo a dose
+            id_farmaco=id_farmaco,  
+            dose_utilizada_ml=dose,  
             observacoes=obs if obs else None,
-            data=datetime.now()  # Adicionando data/hora atual
+            data=datetime.now()  
         )
         
         session.add(sessao)
