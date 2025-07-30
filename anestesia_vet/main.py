@@ -3,6 +3,7 @@ from controllers.animal_controller import cadastrar_animal
 from controllers.farmaco_controller import cadastrar_farmaco
 from controllers.farmaco_controller import importar_farmacos_csv
 from controllers.sessao_controller import registrar_sessao
+from controllers.sessao_controller import registrar_sessao_avulsa
 
 
 def menu():
@@ -11,7 +12,8 @@ def menu():
         print("1. Cadastrar Animal")
         print("2. Cadastrar Fármaco")
         print("3. Registrar Sessão Anestésica")
-        print("4. Sair")
+        print("4. Cadastrar sessão avulsa")
+        print("5. Sair")
 
         opcao = input("Escolha uma opção: ")
 
@@ -22,6 +24,8 @@ def menu():
         elif opcao == "3":
             registrar_sessao()
         elif opcao == "4":
+            registrar_sessao_avulsa()
+        elif opcao == '5':
             print("Encerrando...")
             break
         else:
