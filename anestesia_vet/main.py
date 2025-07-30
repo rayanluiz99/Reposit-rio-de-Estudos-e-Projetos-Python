@@ -1,7 +1,9 @@
 from database.engine import create_db
 from controllers.animal_controller import cadastrar_animal
 from controllers.farmaco_controller import cadastrar_farmaco
+from controllers.farmaco_controller import importar_farmacos_csv
 from controllers.sessao_controller import registrar_sessao
+
 
 def menu():
     while True:
