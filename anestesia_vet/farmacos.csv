@@ -1,4 +1,25 @@
-nome,concentracao_mg_ml,dose_mg_kg
-Cetamina,100,10
-Midazolam,5,0.3
-Propofol,10,4
+nome,dose,concentracao,unidade_dose,modo_uso,volume_seringa,comentario
+Remifentanil,5,0.5,µg/kg/h,infusão contínua,0.20,Analgésico opioide ultrapotente
+Sufentanil,1,50,µg/kg/h,infusão contínua,0.40,Analgésico opioide
+Alfentanil,60,500,µg/kg/h,infusão contínua,2.40,Analgésico opioide de curta duração
+Fentanil,5,50,µg/kg/h,infusão contínua,2.00,Analgésico opioide
+Morfina,120,10,µg/kg/h,infusão contínua,0.24,Analgésico opioide
+Lidocaína,0.5,20,mg/kg/h,infusão contínua,0.50,Anestésico local/antiarrítmico
+Cetamina,0.6,100,mg/kg/h,infusão contínua,0.12,Anestésico dissociativo
+Dexmedetomidina,1,500,µg/kg/h,infusão contínua,0.04,Sedativo α2-agonista
+Maropitant,100,10000,µg/kg/h,infusão contínua,0.20,Antiemético
+Magnésio,80,100,mg/kg/h,infusão contínua,16.00,Eletrólito/anticonvulsivante
+Midazolam,0.1,5,mg/kg/h,infusão contínua,0.40,Sedativo benzodiazepínico
+Dopamina,10,5000,µg/kg/min,infusão contínua,2.40,Vasoativo
+Dobutamina,5,12500,µg/kg/min,infusão contínua,0.48,Vasoativo
+Norepinefrina,0.5,2000,µg/kg/min,infusão contínua,0.30,Vasopressor
+Milrinona,0.4,1000,µg/kg/min,infusão contínua,0.48,Inotrópico
+Adrenalina,0.1,1000,µg/kg/min,infusão contínua,0.12,Vasopressor
+Fenilefrina,0.5,10000,µg/kg/min,infusão contínua,0.06,Vasopressor
+Furosemida,0.1,10,mg/kg/h,infusão contínua,0.20,Diurético
+Metoclopramida,0.04,5,mg/kg/h,infusão contínua,0.16,Antiemético
+Rocurônio,0.2,10,mg/kg/h,infusão contínua,0.40,Bloqueador neuromuscular
+Atracúrio,0.18,10,mg/kg/h,infusão contínua,0.36,Bloqueador neuromuscular
+Cisatracúrio,0.06,2,mg/kg/h,infusão contínua,0.60,Bloqueador neuromuscular
+Propofol,4,10,mg/kg,bolus,,Indutor anestésico
+Propofol,2,10,mg/kg,bolus,,Indutor anestésico (dose reduzida)

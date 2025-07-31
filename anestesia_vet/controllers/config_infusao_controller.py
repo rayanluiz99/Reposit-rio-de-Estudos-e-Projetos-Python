@@ -1,5 +1,6 @@
 from sqlmodel import Session
-from models.config_infusao import ConfigInfusao, TipoEquipo
+from models.config_infusao import TipoEquipo
+from models.config_infusao import ConfigInfusao
 from models.sessao import SessaoAnestesia
 
 def criar_config_infusao(session: Session, peso_kg: float, 

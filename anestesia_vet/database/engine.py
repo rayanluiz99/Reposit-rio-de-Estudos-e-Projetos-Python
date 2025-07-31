@@ -1,12 +1,13 @@
 from sqlmodel import SQLModel, create_engine
+from models.animal import Animal
+from models.farmaco import Farmaco
+from models.sessao import SessaoAnestesia, SessaoAvulsaAnestesia
+from models.config_infusao import ConfigInfusao
 
-sqlite_file = "anestesia.db"
-engine = create_engine(f"sqlite:///{sqlite_file}", echo=True)
+sqlite_url = "sqlite:///database.db"
+engine = create_engine(sqlite_url, echo=True)
 
-def create_db():
-    from models.animal import Animal
-    from models.farmaco import Farmaco
-    from models.sessao import SessaoAnestesia
-    
+def criar_db_e_tabelas():
     SQLModel.metadata.create_all(engine)
 
+criar_db_e_tabelas()    
