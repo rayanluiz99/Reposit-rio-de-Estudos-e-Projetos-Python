@@ -1,0 +1,16 @@
+PRESCRIÇÃO ANESTÉSICA - Sessão #1
+==================================================
+
+🐾 DADOS DO PACIENTE:
+Nome: Caramelo
+Espécie: Cão
+Peso: 20.0 kg
+
+💊 DADOS FARMACOLÓGICOS:
+Medicação: Sufentanil
+Dose: 1.0 µg/kg/h
+Concentração: 50.0 mg/ml
+Volume administrado: 0.40 ml
+
+==================================================
+Data: 01/08/2025 11:01

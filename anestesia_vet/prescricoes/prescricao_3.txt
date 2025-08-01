@@ -1,0 +1,16 @@
+PRESCRIÇÃO ANESTÉSICA - Sessão #3
+==================================================
+
+🐾 DADOS DO PACIENTE:
+Nome: srantonio
+Espécie: Cão
+Peso: 23.0 kg
+
+💊 DADOS FARMACOLÓGICOS:
+Medicação: metadona
+Dose: 10.0 mg/kg
+Concentração: 50.0 mg/ml
+Volume administrado: 4.60 ml
+
+==================================================
+Data: 01/08/2025 10:30

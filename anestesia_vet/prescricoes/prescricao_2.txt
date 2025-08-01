@@ -1,0 +1,16 @@
+PRESCRIÇÃO ANESTÉSICA - Sessão #2
+==================================================
+
+🐾 DADOS DO PACIENTE:
+Nome: Lua
+Espécie: Cão
+Peso: 3.0 kg
+
+💊 DADOS FARMACOLÓGICOS:
+Medicação: metadona
+Dose: 10.0 mg/kg
+Concentração: 50.0 mg/ml
+Volume administrado: 0.60 ml
+
+==================================================
+Data: 01/08/2025 10:25

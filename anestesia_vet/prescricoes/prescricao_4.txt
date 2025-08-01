@@ -1,0 +1,16 @@
+PRESCRIÇÃO ANESTÉSICA - Sessão #4
+==================================================
+
+🐾 DADOS DO PACIENTE:
+Nome: animal teste
+Espécie: Cão
+Peso: 25.0 kg
+
+💊 DADOS FARMACOLÓGICOS:
+Medicação: Propofol
+Dose: 2.0 mg/kg
+Concentração: 10.0 mg/ml
+Volume administrado: 5.00 ml
+
+==================================================
+Data: 01/08/2025 11:54

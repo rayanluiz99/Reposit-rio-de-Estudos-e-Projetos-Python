@@ -1,0 +1,18 @@
+---- PRESCRIÇÃO ANESTÉSICA ----
+Data: 01/08/2025 11:55
+Animal: Avulso
+Espécie: Não informada
+Peso: Informado manualmente
+
+FÁRMACO:
+Nome: Sufentanil
+Concentração: 50.0mg/ml
+Dose: 1.0 µg/kg/h
+Modo de uso: Infusão contínua
+
+DOSES:
+Sugerida: N/A
+Utilizada: 0.40ml
+
+Observações: teste
+----------------------------
