@@ -1337,4 +1337,4 @@ if __name__ == "__main__":
     position_right = int(screen_width/2 - window_width/2)
     root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
     
-    root.mainloop()  # ÚNICA chamada ao mainloop
+    root.mainloop() 
