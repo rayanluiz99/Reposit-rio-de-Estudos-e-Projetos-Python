@@ -1,12 +1,24 @@
+from __future__ import annotations  # DEVE SER A PRIMEIRA LINHA!
 import os
+from datetime import datetime, timezone
+from typing import Optional, TYPE_CHECKING
+from sqlmodel import Session, select
+
+# Importações de modelos
 from models.sessao import SessaoAnestesia, SessaoAvulsaAnestesia
 from models.animal import Animal
 from models.farmaco import Farmaco
-from database.engine import engine
-from sqlmodel import Session, select
-from datetime import datetime, timezone
-from typing import Optional
+
+# Importações de controllers (após os modelos)
 from controllers.config_infusao_controller import criar_config_infusao, calcular_taxas
+
+# Configuração do banco
+from database.engine import engine
+
+if TYPE_CHECKING:
+    from models.config_infusao import ConfigInfusao 
+
+# O resto do código permanece igual!
 
 def registrar_sessao():
     """Registra uma nova sessão anestésica, com cálculo automático de dose"""

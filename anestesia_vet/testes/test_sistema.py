@@ -15,7 +15,10 @@ sys.path.append(str(ROOT_DIR))
 
 # Agora importe normalmente
 from database.engine import engine, criar_db_e_tabelas
-from models import Animal, Farmaco, SessaoAnestesia, ConfigInfusao
+from models.sessao import SessaoAnestesia
+from models.config_infusao import ConfigInfusao
+from models.animal import Animal
+from models.farmaco import Farmaco
 from controllers import (
     animal_controller,
     farmaco_controller,
@@ -32,7 +35,7 @@ class TestSistemaAnestesia(unittest.TestCase):
         criar_db_e_tabelas()
         cls.session = Session(engine)
         
-    # ... (restante do código de teste permanece igual)
+        
 
 class TestSistemaAnestesia(unittest.TestCase):
     @classmethod
