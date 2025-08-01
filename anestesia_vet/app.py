@@ -68,6 +68,34 @@ class VetAnesthesiaApp:
         # Carregar dados iniciais
         self.load_initial_data()
 
+    def delete_farmaco(self):
+        """Exclui um fármaco selecionado"""
+        selected_item = self.farmaco_tree.selection()
+        if not selected_item:
+            messagebox.showerror("Erro", "Selecione um fármaco para excluir!")
+            return
+        
+        farmaco_id = self.farmaco_tree.item(selected_item[0])['values'][0]
+        farmaco_nome = self.farmaco_tree.item(selected_item[0])['values'][1]
+        
+        if not messagebox.askyesno("Confirmar", f"Tem certeza que deseja excluir o fármaco {farmaco_nome} (ID: {farmaco_id})?"):
+            return
+        
+        try:
+            with Session(engine) as session:
+                farmaco = session.get(Farmaco, farmaco_id)
+                if not farmaco:
+                    messagebox.showerror("Erro", "Fármaco não encontrado!")
+                    return
+                
+                session.delete(farmaco)
+                session.commit()
+                messagebox.showinfo("Sucesso", "Fármaco excluído com sucesso!")
+                self.load_farmacos_tree()  # Atualiza a lista
+                
+        except Exception as e:
+            messagebox.showerror("Erro", f"Falha ao excluir fármaco: {str(e)}")
+
     def configure_styles(self):
         """Configura os estilos visuais da aplicação"""
         self.style.configure('TFrame', background='#f0f0f0')
@@ -187,6 +215,7 @@ class VetAnesthesiaApp:
         ttk.Button(btn_frame, text="Cadastrar Novo", command=self.register_farmaco).pack(side='left', padx=5)
         ttk.Button(btn_frame, text="Importar CSV", command=self.import_farmacos_csv).pack(side='left', padx=5)
         ttk.Button(btn_frame, text="Exportar CSV", command=self.export_farmacos_csv).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="Excluir Selecionado", command=self.delete_farmaco).pack(side='left', padx=5)
         
         # Carregar dados inicialmente
         self.load_farmacos_tree()
@@ -1084,7 +1113,7 @@ class VetAnesthesiaApp:
                     conteudo += f"Volume administrado: {sessao_avulsa.dose_utilizada_ml:.2f} ml\n"
                     
                 else:
-                    # Código original para sessão normal
+                    # Sessão normal com animal cadastrado
                     farmaco = session.get(Farmaco, sessao.id_farmaco)
                     animal = session.get(Animal, sessao.id_animal) if sessao.id_animal else None
                     config = session.get(ConfigInfusao, sessao.config_infusao_id) if sessao.config_infusao_id else None
@@ -1099,7 +1128,29 @@ class VetAnesthesiaApp:
                     else:
                         conteudo += "Dados do animal não disponíveis\n"
 
-                    # Restante do código original...
+                    conteudo += "\n💊 DADOS FARMACOLÓGICOS:\n"
+                    if farmaco:
+                        conteudo += f"Medicação: {farmaco.nome}\n"
+                        conteudo += f"Dose: {farmaco.dose} {farmaco.unidade_dose}\n"
+                        conteudo += f"Concentração: {farmaco.concentracao} mg/ml\n"
+                        conteudo += f"Volume administrado: {sessao.dose_utilizada_ml:.2f} ml\n"
+                    else:
+                        conteudo += "Dados do fármaco não disponíveis\n"
+
+                    # Configuração de Infusão (se aplicável)
+                    if config:
+                        calculos = calcular_taxas(config)
+                        conteudo += "\n⚙️ CONFIGURAÇÃO DE INFUSÃO:\n"
+                        conteudo += f"Volume da bolsa: {config.volume_bolsa_ml} ml\n"
+                        conteudo += f"Taxa: {calculos['taxa_ml_h']} ml/h\n"
+                        conteudo += f"Gotas/min: {calculos['gotas_min']}\n"
+                        conteudo += f"Duração estimada: {calculos['duracao_h']:.1f} horas\n"
+
+                    # Observações (se existirem)
+                    if sessao.observacoes:
+                        conteudo += "\n📝 OBSERVAÇÕES:\n"
+                        conteudo += f"{sessao.observacoes}\n"
+                                    
                 
                 # Salvar arquivo
                 os.makedirs("prescricoes", exist_ok=True)

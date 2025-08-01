@@ -1,0 +1,13 @@
+PRESCRIÇÃO ANESTÉSICA - Sessão Avulsa #8
+==================================================
+
+🐾 DADOS DO PACIENTE:
+Nome: Floquinhos
+Espécie: Cão
+Peso: 23.0 kg
+
+💊 DADOS FARMACOLÓGICOS:
+Medicação: Maropitant
+Dose: 100.0 µg/kg/h
+Concentração: 10000.0 mg/ml
+Volume administrado: 0.23 ml
