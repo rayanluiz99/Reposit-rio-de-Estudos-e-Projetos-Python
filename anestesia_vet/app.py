@@ -48,6 +48,17 @@ class VetAnesthesiaApp:
         self.style = ttk.Style()
         self.configure_styles()
         
+        # Frame para botões globais (ADICIONE ESTE FRAME)
+        global_btn_frame = ttk.Frame(root)
+        global_btn_frame.pack(fill='x', padx=10, pady=5)
+        
+        # Botão da calculadora (MODIFICADO)
+        ttk.Button(
+            global_btn_frame, 
+            text="Calculadora (F2)", 
+            command=self.show_calculator
+        ).pack(side='left', padx=5)
+        
         # Layout principal
         self.main_frame = ttk.Frame(root)
         self.main_frame.pack(expand=True, fill='both', padx=10, pady=10)
@@ -67,7 +78,120 @@ class VetAnesthesiaApp:
         
         # Carregar dados iniciais
         self.load_initial_data()
+        
+        # Atalho de teclado (MODIFICADO)
+        self.root.bind("<F2>", lambda e: self.show_calculator())
 
+    def show_calculator(self, event=None):
+        """Calculadora veterinária com conversões práticas"""
+        calc_window = tk.Toplevel(self.root)
+        calc_window.title("Calculadora Veterinária")
+        calc_window.geometry("380x600")
+        calc_window.resizable(False, False)
+
+        # Variável para o visor (agora editável)
+        display_var = tk.StringVar(value="")
+        
+        # Frame do visor melhorado
+        display_frame = ttk.Frame(calc_window, padding=10)
+        display_frame.pack(pady=10)
+        
+        ttk.Entry(
+            display_frame, 
+            textvariable=display_var, 
+            font=('Arial', 24),
+            justify='right',
+            width=12
+        ).pack()
+
+        # Frame de botões numéricos
+        btn_frame = ttk.Frame(calc_window)
+        btn_frame.pack(pady=5)
+
+        # Layout dos botões
+        buttons = [
+            ('7', 0, 0), ('8', 0, 1), ('9', 0, 2), ('/', 0, 3),
+            ('4', 1, 0), ('5', 1, 1), ('6', 1, 2), ('*', 1, 3),
+            ('1', 2, 0), ('2', 2, 1), ('3', 2, 2), ('-', 2, 3),
+            ('0', 3, 0), ('.', 3, 1), ('C', 3, 2), ('+', 3, 3),
+            ('=', 4, 0, 1, 4)  # Botão igual ocupando 4 colunas
+        ]
+
+        # Funções atualizadas
+        def insert_value(value):
+            current = display_var.get()
+            display_var.set(current + str(value))
+        
+        def clear_display():
+            display_var.set("")
+        
+        def calculate():
+            try:
+                result = eval(display_var.get())
+                display_var.set(str(result))
+            except:
+                display_var.set("ERRO")
+
+        # Criando botões
+        for button in buttons:
+            if button[0] == '=':
+                btn = ttk.Button(btn_frame, text=button[0], command=calculate)
+                btn.grid(row=button[1], column=button[2], 
+                        columnspan=button[3], sticky='nsew', padx=2, pady=2)
+            elif button[0] == 'C':
+                btn = ttk.Button(btn_frame, text=button[0], command=clear_display)
+                btn.grid(row=button[1], column=button[2], padx=2, pady=2)
+            else:
+                btn = ttk.Button(btn_frame, text=button[0], 
+                            command=lambda v=button[0]: insert_value(v))
+                btn.grid(row=button[1], column=button[2], padx=2, pady=2)
+
+        # Conversões veterinárias (área expandida)
+        conv_frame = ttk.LabelFrame(calc_window, text="Conversões Clínicas", padding=10)
+        conv_frame.pack(pady=10, fill='x', padx=10)
+
+        # Novas funções de conversão
+        def convert_mcg_to_mg():
+            try:
+                mcg = float(display_var.get())
+                display_var.set(str(round(mcg / 1000, 6)))
+            except:
+                display_var.set("ERRO")
+
+        def convert_mg_to_g():
+            try:
+                mg = float(display_var.get())
+                display_var.set(str(round(mg / 1000, 6)))
+            except:
+                display_var.set("ERRO")
+
+        def convert_ml_to_drops():
+            try:
+                ml = float(display_var.get())
+                drops = ml * 20  # 20 gotas por mL
+                display_var.set(str(round(drops)))
+            except:
+                display_var.set("ERRO")
+
+        def convert_kg_to_lbs():
+            try:
+                kg = float(display_var.get())
+                display_var.set(str(round(kg * 2.20462, 2)))
+            except:
+                display_var.set("ERRO")
+
+        # Botões de conversão (2 linhas)
+        ttk.Button(conv_frame, text="μg → mg", command=convert_mcg_to_mg).grid(row=0, column=0, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="mg → g", command=convert_mg_to_g).grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="mL → gotas", command=convert_ml_to_drops).grid(row=1, column=0, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="kg → lbs", command=convert_kg_to_lbs).grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+
+        # Configuração responsiva
+        for i in range(2):
+            conv_frame.columnconfigure(i, weight=1)
+        for i in range(4):
+            btn_frame.columnconfigure(i, weight=1)
+    
     def delete_farmaco(self):
         """Exclui um fármaco selecionado"""
         selected_item = self.farmaco_tree.selection()
