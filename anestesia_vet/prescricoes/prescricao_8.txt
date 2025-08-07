@@ -1,13 +1,13 @@
-PRESCRIÇÃO ANESTÉSICA - Sessão Avulsa #8
+PRESCRIÇÃO ANESTÉSICA - Sessão #8
 ==================================================
 
 🐾 DADOS DO PACIENTE:
-Nome: Floquinhos
+Nome: BOB
 Espécie: Cão
-Peso: 23.0 kg
+Peso: 10.0 kg
 
 💊 DADOS FARMACOLÓGICOS:
-Medicação: Maropitant
-Dose: 100.0 µg/kg/h
-Concentração: 10000.0 mg/ml
-Volume administrado: 0.23 ml
+Medicação: Propofol
+Dose: 4.0 mg/kg
+Concentração: 10.0 mg/ml
+Volume administrado: 4.00 ml

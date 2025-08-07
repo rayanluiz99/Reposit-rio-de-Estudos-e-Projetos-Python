@@ -85,3 +85,66 @@ def menu_config_infusao(session: Session, peso_padrao: float = None) -> ConfigIn
         volume_bolsa=volume,
         equipo_tipo="microgotas" if equipo.startswith('micro') else "macrogotas"
     )
+    
+def calcular_infusao_especifica(
+    peso_kg: float, 
+    dose_mcg_kg_h: float, 
+    concentracao_mcg_ml: float,
+    volume_seringa_ml: float = 20.0,
+    equipo_tipo: str = "macrogotas"
+) -> dict:
+    """
+    Calcula parâmetros para infusões específicas como Remifentanil, Lidocaína, Cetamina
+    
+    Fórmula:
+    Volume do fármaco na seringa (ml) = (Dose * Peso * Volume da seringa) / Concentração
+    Taxa de infusão (ml/h) = Dose * Peso / Concentração
+    """
+    # Cálculo do volume do fármaco na seringa
+    volume_farmaco_ml = (dose_mcg_kg_h * peso_kg * volume_seringa_ml) / concentracao_mcg_ml
+    
+    # Cálculo da taxa de infusão em ml/h
+    taxa_ml_h = (dose_mcg_kg_h * peso_kg) / concentracao_mcg_ml
+    
+    # Cálculo de gotas/min
+    fator = 20 if equipo_tipo == "macrogotas" else 60
+    gotas_min = (taxa_ml_h * fator) / 60
+    
+    return {
+        'volume_farmaco_ml': round(volume_farmaco_ml, 2),
+        'volume_dilente_ml': round(volume_seringa_ml - volume_farmaco_ml, 2),
+        'taxa_ml_h': round(taxa_ml_h, 2),
+        'gotas_min': round(gotas_min, 2),
+        'fator_equipo': fator
+    }    
+def calcular_infusao_especifica(
+    peso_kg: float, 
+    dose_mcg_kg_h: float, 
+    concentracao_mcg_ml: float,
+    volume_seringa_ml: float = 20.0,
+    equipo_tipo: str = "macrogotas"
+) -> dict:
+    """
+    Calcula parâmetros para infusões específicas (Remifentanil, Lidocaína, Cetamina)
+    
+    Fórmulas:
+    Volume do fármaco (ml) = (Dose * Peso * Volume da seringa) / Concentração
+    Taxa de infusão (ml/h) = (Dose * Peso) / Concentração
+    """
+    # Cálculo do volume do fármaco na seringa
+    volume_farmaco_ml = (dose_mcg_kg_h * peso_kg * volume_seringa_ml) / concentracao_mcg_ml
+    
+    # Cálculo da taxa de infusão em ml/h
+    taxa_ml_h = (dose_mcg_kg_h * peso_kg) / concentracao_mcg_ml
+    
+    # Cálculo de gotas/min
+    fator = 20 if equipo_tipo == "macrogotas" else 60
+    gotas_min = (taxa_ml_h * fator) / 60
+    
+    return {
+        'volume_farmaco_ml': volume_farmaco_ml,
+        'volume_dilente_ml': volume_seringa_ml - volume_farmaco_ml,
+        'taxa_ml_h': taxa_ml_h,
+        'gotas_min': gotas_min,
+        'fator_equipo': fator
+    }    

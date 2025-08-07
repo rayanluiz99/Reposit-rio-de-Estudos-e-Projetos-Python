@@ -1,4 +1,7 @@
 # Importações de modelos
+from models.protocolo import Protocolo, ProtocoloFarmaco
+from controllers.protocolo_controller import criar_protocolo, listar_protocolos, obter_farmacos_do_protocolo, obter_protocolo, deletar_protocolo
+import tkinter as tk
 from models.animal import Animal
 from models.farmaco import Farmaco
 from models.config_infusao import ConfigInfusao, TipoEquipo
@@ -15,7 +18,8 @@ from controllers.farmaco_controller import (
 from controllers.config_infusao_controller import (
     criar_config_infusao,
     calcular_taxas,
-    menu_config_infusao
+    menu_config_infusao,
+    calcular_infusao_especifica
 )
 from controllers.sessao_controller import (
     registrar_sessao,
@@ -72,6 +76,7 @@ class VetAnesthesiaApp:
         self.create_farmaco_tab()
         self.create_session_tab()
         self.create_infusion_tab()
+        self.create_protocolo_tab() 
         
         # Painel de fórmulas
         self.create_formulas_panel()
@@ -243,6 +248,238 @@ class VetAnesthesiaApp:
             
             # Carregar lista completa de fármacos (Treeview)
             self.load_farmacos_tree()  # Agora chamando o método corretamente
+    def create_protocolo_tab(self):
+        """Cria a aba de gerenciamento de protocolos"""
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="📜 Protocolos")
+        
+        # Frame principal
+        main_frame = ttk.Frame(frame)
+        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Treeview para protocolos
+        columns = ("ID", "Nome", "Descrição", "Criado em")
+        self.protocolo_tree = ttk.Treeview(main_frame, columns=columns, show='headings')
+        
+        self.protocolo_tree.heading("ID", text="ID")
+        self.protocolo_tree.heading("Nome", text="Nome")
+        self.protocolo_tree.heading("Descrição", text="Descrição")
+        self.protocolo_tree.heading("Criado em", text="Criado em")
+        
+        self.protocolo_tree.column("ID", width=50, anchor='center')
+        self.protocolo_tree.column("Nome", width=150)
+        self.protocolo_tree.column("Descrição", width=200)
+        self.protocolo_tree.column("Criado em", width=120)
+        
+        # Treeview para fármacos do protocolo
+        farmaco_columns = ("Ordem", "Nome", "Dose", "Concentração", "Modo Uso")
+        self.protocolo_farmaco_tree = ttk.Treeview(main_frame, columns=farmaco_columns, show='headings')
+        
+        for col in farmaco_columns:
+            self.protocolo_farmaco_tree.heading(col, text=col)
+            self.protocolo_farmaco_tree.column(col, width=100)
+        
+        # Layout
+        self.protocolo_tree.pack(fill='x', pady=5)
+        self.protocolo_farmaco_tree.pack(fill='x', pady=5)
+        
+        # Frame de botões
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill='x', pady=10)
+        
+        ttk.Button(btn_frame, text="Novo Protocolo", command=self.criar_novo_protocolo).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="Excluir Protocolo", command=self.deletar_protocolo).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="Adicionar Fármaco", command=self.adicionar_farmaco_protocolo).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="Remover Fármaco", command=self.remover_farmaco_protocolo).pack(side='left', padx=5)
+        
+        # Carregar protocolos
+        self.carregar_protocolos()
+        
+        # Evento de seleção
+        self.protocolo_tree.bind('<<TreeviewSelect>>', self.selecionar_protocolo)
+
+    def criar_novo_protocolo(self):
+        """Janela para criar novo protocolo"""
+        window = tk.Toplevel(self.root)
+        window.title("Novo Protocolo")
+        window.geometry("400x300")
+        
+        ttk.Label(window, text="Nome do Protocolo:").pack(pady=5)
+        nome_entry = ttk.Entry(window, width=30)
+        nome_entry.pack(pady=5)
+        
+        ttk.Label(window, text="Descrição:").pack(pady=5)
+        desc_entry = tk.Text(window, height=4, width=30)
+        desc_entry.pack(pady=5)
+        
+        def salvar():
+            nome = nome_entry.get().strip()
+            desc = desc_entry.get("1.0", tk.END).strip()
+            
+            if not nome:
+                messagebox.showerror("Erro", "O nome do protocolo é obrigatório!")
+                return
+                
+            with Session(engine) as session:
+                criar_protocolo(session, nome, desc)
+                messagebox.showinfo("Sucesso", "Protocolo criado com sucesso!")
+                window.destroy()
+                self.carregar_protocolos()
+        
+        ttk.Button(window, text="Salvar", command=salvar).pack(pady=10)
+
+    def deletar_protocolo(self):
+        """Deleta o protocolo selecionado na Treeview"""
+        selected = self.protocolo_tree.selection()
+        
+        if not selected:
+            messagebox.showwarning("Atenção", "Selecione um protocolo para excluir.")
+            return
+
+        protocolo_id = self.protocolo_tree.item(selected[0])["values"][0]
+        
+        confirm = messagebox.askyesno(
+            "Confirmação",
+            f"Tem certeza que deseja excluir o protocolo ID {protocolo_id}?"
+        )
+        
+        if not confirm:
+            return
+        
+        from controllers.protocolo_controller import deletar_protocolo  # Certifique-se que isso existe
+
+        with Session(engine) as session:
+            deletar_protocolo(session, protocolo_id)
+            messagebox.showinfo("Sucesso", "Protocolo excluído com sucesso!")
+            self.carregar_protocolos()
+            
+    def adicionar_farmaco_protocolo(self):
+        """Janela para adicionar um fármaco ao protocolo selecionado"""
+        selected = self.protocolo_tree.selection()
+        
+        if not selected:
+            messagebox.showwarning("Aviso", "Selecione um protocolo para adicionar fármacos.")
+            return
+        
+        protocolo_id = self.protocolo_tree.item(selected[0])["values"][0]
+
+        window = tk.Toplevel(self.root)
+        window.title("Adicionar Fármaco ao Protocolo")
+        window.geometry("400x300")
+
+        # Seleção de fármaco
+        ttk.Label(window, text="Fármaco:").pack(pady=5)
+        farmaco_var = tk.StringVar()
+        farmaco_combo = ttk.Combobox(window, textvariable=farmaco_var, state="readonly")
+        farmaco_combo.pack(pady=5)
+
+        # Carrega os fármacos do banco
+        from controllers.farmaco_controller import listar_farmacos  # Certifique-se que essa função existe
+        with Session(engine) as session:
+            farmacos = listar_farmacos(session)
+            self._farmacos_disponiveis = {f.nome: f for f in farmacos}
+            farmaco_combo["values"] = list(self._farmacos_disponiveis.keys())
+
+        # Peso do animal para cálculo (simples)
+        ttk.Label(window, text="Peso do animal (kg):").pack(pady=5)
+        peso_entry = ttk.Entry(window)
+        peso_entry.pack(pady=5)
+
+        def salvar_farmaco():
+            nome_farmaco = farmaco_var.get()
+            peso_str = peso_entry.get()
+
+            if not nome_farmaco or not peso_str:
+                messagebox.showerror("Erro", "Preencha todos os campos.")
+                return
+            
+            try:
+                peso = float(peso_str)
+            except ValueError:
+                messagebox.showerror("Erro", "Peso inválido.")
+                return
+
+            farmaco = self._farmacos_disponiveis.get(nome_farmaco)
+            dose_total = (farmaco.dose or 0) * peso
+
+            from controllers.protocolo_controller import adicionar_farmaco_ao_protocolo
+            with Session(engine) as session:
+                adicionar_farmaco_ao_protocolo(session, protocolo_id, farmaco.id, dose_total)
+                messagebox.showinfo("Sucesso", f"{farmaco.nome} adicionado com dose de {dose_total:.2f} ml.")
+                window.destroy()
+
+        ttk.Button(window, text="Adicionar", command=salvar_farmaco).pack(pady=10)
+            
+    def remover_farmaco_protocolo(self):
+        """Remove um fármaco do protocolo selecionado"""
+        # Verifica se há um protocolo selecionado
+        selected_protocolo = self.protocolo_tree.selection()
+        if not selected_protocolo:
+            messagebox.showwarning("Aviso", "Selecione um protocolo primeiro.")
+            return
+
+        protocolo_id = self.protocolo_tree.item(selected_protocolo[0])["values"][0]
+
+        # Criar uma janela para seleção do fármaco a remover
+        window = tk.Toplevel(self.root)
+        window.title("Remover Fármaco do Protocolo")
+        window.geometry("400x300")
+
+        ttk.Label(window, text="Selecione o fármaco a remover:").pack(pady=5)
+
+        farmaco_var = tk.StringVar()
+        farmaco_combo = ttk.Combobox(window, textvariable=farmaco_var, state="readonly")
+        farmaco_combo.pack(pady=10)
+
+        from controllers.protocolo_controller import obter_farmacos_do_protocolo
+        with Session(engine) as session:
+            farmacos_atuais = obter_farmacos_do_protocolo(session, protocolo_id)
+            self._farmacos_e
+            
+
+    def carregar_protocolos(self):
+        """Carrega todos os protocolos na treeview"""
+        with Session(engine) as session:
+            protocolos = listar_protocolos(session)
+            
+            # Limpar treeview
+            for item in self.protocolo_tree.get_children():
+                self.protocolo_tree.delete(item)
+                
+            # Adicionar protocolos
+            for p in protocolos:
+                self.protocolo_tree.insert('', 'end', values=(
+                    p.id,
+                    p.nome,
+                    p.descricao or "",
+                    p.created_at.strftime('%d/%m/%Y')
+                ))
+
+    def selecionar_protocolo(self, event):
+        """Carrega os fármacos do protocolo selecionado"""
+        selected = self.protocolo_tree.selection()
+        if not selected:
+            return
+            
+        protocolo_id = self.protocolo_tree.item(selected[0])['values'][0]
+        
+        with Session(engine) as session:
+            farmacos = obter_farmacos_do_protocolo(session, protocolo_id)
+            
+            # Limpar treeview de fármacos
+            for item in self.protocolo_farmaco_tree.get_children():
+                self.protocolo_farmaco_tree.delete(item)
+                
+            # Adicionar fármacos
+            for farmaco, ordem in farmacos:
+                self.protocolo_farmaco_tree.insert('', 'end', values=(
+                    ordem,
+                    farmaco.nome,
+                    f"{farmaco.dose} {farmaco.unidade_dose}",
+                    f"{farmaco.concentracao} mg/ml",
+                    farmaco.modo_uso
+                ))        
+            
     def create_animal_tab(self):
         """Cria a aba de cadastro de animais"""
         frame = ttk.Frame(self.notebook)
@@ -544,6 +781,23 @@ class VetAnesthesiaApp:
         form_frame = ttk.LabelFrame(frame, text="Nova Sessão Anestésica", padding=10)
         form_frame.pack(fill='x', pady=5)
         
+        ttk.Label(form_frame, text="Protocolo:").grid(row=0, column=3, sticky='e', padx=5, pady=2)
+        self.protocolo_combobox = ttk.Combobox(form_frame, state='readonly', width=30)
+        self.protocolo_combobox.grid(row=0, column=4, sticky='w', padx=5, pady=2)
+        ttk.Button(form_frame, text="Carregar", command=self.carregar_protocolo_sessao).grid(row=0, column=5, padx=5)
+        
+        # Treeview para fármacos do protocolo na sessão
+        ttk.Label(form_frame, text="Fármacos do Protocolo:").grid(row=8, column=0, sticky='ne', padx=5, pady=2)
+        columns_farmacos = ("Fármaco", "Dose", "Modo", "Dose Calculada")
+        self.protocolo_farmacos_tree = ttk.Treeview(form_frame, columns=columns_farmacos, show='headings', height=4)
+        
+        for col in columns_farmacos:
+            self.protocolo_farmacos_tree.heading(col, text=col)
+            self.protocolo_farmacos_tree.column(col, width=100)
+        
+        self.protocolo_farmacos_tree.grid(row=8, column=1, columnspan=4, sticky='we', padx=5, pady=2)
+        
+        
         # Seleção de animal
         ttk.Label(form_frame, text="Animal:").grid(row=0, column=0, sticky='e', padx=5, pady=2)
         self.animal_combobox = ttk.Combobox(form_frame, state='readonly', width=40)
@@ -601,46 +855,111 @@ class VetAnesthesiaApp:
         
         self.session_tree.pack(expand=True, fill='both')
         self.load_sessions_list()
+        
+    def carregar_protocolo_sessao(self):
+        """Carrega os fármacos de um protocolo na sessão"""
+        protocolo_nome = self.protocolo_combobox.get()
+        if not protocolo_nome:
+            return
+            
+        protocolo_id = int(protocolo_nome.split(' - ')[0])
+        
+        with Session(engine) as session:
+            protocolo = obter_protocolo(session, protocolo_id)
+            if not protocolo:
+                return
+                
+            farmacos = obter_farmacos_do_protocolo(session, protocolo_id)
+            
+            # Limpar treeview
+            for item in self.protocolo_farmacos_tree.get_children():
+                self.protocolo_farmacos_tree.delete(item)
+                
+            # Calcular doses para cada fármaco
+            animal_str = self.animal_combobox.get()
+            if not animal_str:
+                messagebox.showinfo("Info", "Selecione um animal primeiro")
+                return
+                
+            animal_id = int(animal_str.split(' - ')[0])
+            animal = session.get(Animal, animal_id)
+            
+            for farmaco, ordem in farmacos:
+                # Cálculo da dose
+                if farmaco.modo_uso == "bolus":
+                    dose_ml = (animal.peso_kg * farmaco.dose) / farmaco.concentracao
+                else:  # infusão contínua
+                    multiplicador = 60 if "min" in farmaco.unidade_dose else 1
+                    dose_ml = (animal.peso_kg * farmaco.dose * multiplicador) / farmaco.concentracao
+                
+                self.protocolo_farmacos_tree.insert('', 'end', values=(
+                    farmaco.nome,
+                    f"{farmaco.dose} {farmaco.unidade_dose}",
+                    farmaco.modo_uso,
+                    f"{dose_ml:.2f} ml"
+                ))    
 
     def create_infusion_tab(self):
         """Cria a aba de configuração de infusão contínua"""
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="💉 Infusão")
         
-        # Formulário de configuração
-        form_frame = ttk.LabelFrame(frame, text="Configuração de Infusão Contínua", padding=10)
-        form_frame.pack(fill='x', pady=5)
+        # Frame principal do formulário (agora atributo da classe)
+        self.infusion_form_frame = ttk.LabelFrame(frame, text="Configuração de Infusão Contínua", padding=10)
+        self.infusion_form_frame.pack(fill='x', pady=5)
         
         # Peso do paciente
-        ttk.Label(form_frame, text="Peso do paciente (kg):").grid(row=0, column=0, sticky='e', padx=5, pady=2)
-        self.infusion_peso = ttk.Entry(form_frame, width=10)
+        ttk.Label(self.infusion_form_frame, text="Peso do paciente (kg):").grid(row=0, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_peso = ttk.Entry(self.infusion_form_frame, width=10)
         self.infusion_peso.grid(row=0, column=1, sticky='w', padx=5, pady=2)
         
         # Volume da bolsa (menu suspenso)
-        ttk.Label(form_frame, text="Volume da bolsa (ml):").grid(row=1, column=0, sticky='e', padx=5, pady=2)
-        self.infusion_volume = ttk.Combobox(form_frame, values=[20, 50, 100, 250, 500, 1000], width=8)
+        ttk.Label(self.infusion_form_frame, text="Volume da bolsa (ml):").grid(row=1, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_volume = ttk.Combobox(self.infusion_form_frame, values=[20, 50, 100, 250, 500, 1000], width=8)
         self.infusion_volume.grid(row=1, column=1, sticky='w', padx=5, pady=2)
         self.infusion_volume.current(0)  # Seleciona o primeiro valor por padrão
         
         # Tipo de equipo (menu suspenso)
-        ttk.Label(form_frame, text="Tipo de equipo:").grid(row=2, column=0, sticky='e', padx=5, pady=2)
-        self.infusion_equipo = ttk.Combobox(form_frame, values=["Macrogotas (20 gts/ml)", "Microgotas (60 gts/ml)"], width=20)
+        ttk.Label(self.infusion_form_frame, text="Tipo de equipo:").grid(row=2, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_equipo = ttk.Combobox(self.infusion_form_frame, values=["Macrogotas (20 gts/ml)", "Microgotas (60 gts/ml)"], width=20)
         self.infusion_equipo.grid(row=2, column=1, sticky='w', padx=5, pady=2)
         self.infusion_equipo.current(0)
         
-        # Taxa de infusão
-        ttk.Label(form_frame, text="Taxa (ml/kg/h):").grid(row=3, column=0, sticky='e', padx=5, pady=2)
-        self.infusion_taxa = ttk.Entry(form_frame, width=10)
+        # Taxa de infusão (para cálculo padrão)
+        ttk.Label(self.infusion_form_frame, text="Taxa (ml/kg/h):").grid(row=3, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_taxa = ttk.Entry(self.infusion_form_frame, width=10)
         self.infusion_taxa.grid(row=3, column=1, sticky='w', padx=5, pady=2)
         
+        # Tipo de Infusão (padrão ou específica)
+        ttk.Label(self.infusion_form_frame, text="Tipo de Infusão:").grid(row=4, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_tipo = ttk.Combobox(self.infusion_form_frame, values=["Padrão", "Remifentanil", "Lidocaína", "Cetamina"], width=15)
+        self.infusion_tipo.grid(row=4, column=1, sticky='w', padx=5, pady=2)
+        self.infusion_tipo.current(0)
+        self.infusion_tipo.bind("<<ComboboxSelected>>", self.atualizar_campos_infusao)
+        
+        # Dicionário para armazenar widgets de campos específicos
+        self.campos_especificos = {}
+        
+        # Dose específica (μg/kg/h)
+        self.campos_especificos['label_dose'] = ttk.Label(self.infusion_form_frame, text="Dose (μg/kg/h):")
+        self.campos_especificos['label_dose'].grid(row=5, column=0, sticky='e', padx=5, pady=2)
+        self.campos_especificos['entry_dose'] = ttk.Entry(self.infusion_form_frame, width=10)
+        self.campos_especificos['entry_dose'].grid(row=5, column=1, sticky='w', padx=5, pady=2)
+        
+        # Concentração (μg/ml)
+        self.campos_especificos['label_conc'] = ttk.Label(self.infusion_form_frame, text="Concentração (μg/ml):")
+        self.campos_especificos['label_conc'].grid(row=6, column=0, sticky='e', padx=5, pady=2)
+        self.campos_especificos['entry_conc'] = ttk.Entry(self.infusion_form_frame, width=10)
+        self.campos_especificos['entry_conc'].grid(row=6, column=1, sticky='w', padx=5, pady=2)
+        
         # Botão de cálculo
-        btn_frame = ttk.Frame(form_frame)
-        btn_frame.grid(row=4, column=0, columnspan=2, pady=10)
+        btn_frame = ttk.Frame(self.infusion_form_frame)
+        btn_frame.grid(row=7, column=0, columnspan=2, pady=10)
         ttk.Button(btn_frame, text="Calcular Infusão", command=self.calculate_infusion).pack(side='left', padx=5)
         
         # Resultados
-        results_frame = ttk.LabelFrame(form_frame, text="Resultados", padding=10)
-        results_frame.grid(row=5, column=0, columnspan=2, sticky='ew', pady=5)
+        results_frame = ttk.LabelFrame(self.infusion_form_frame, text="Resultados", padding=10)
+        results_frame.grid(row=8, column=0, columnspan=2, sticky='ew', pady=5)
         
         ttk.Label(results_frame, text="Taxa de infusão:").grid(row=0, column=0, sticky='e', padx=5, pady=2)
         self.result_taxa = ttk.Label(results_frame, text="", style='Header.TLabel')
@@ -653,6 +972,9 @@ class VetAnesthesiaApp:
         ttk.Label(results_frame, text="Duração estimada:").grid(row=2, column=0, sticky='e', padx=5, pady=2)
         self.result_duracao = ttk.Label(results_frame, text="")
         self.result_duracao.grid(row=2, column=1, sticky='w', padx=5, pady=2)
+        
+        # Ocultar campos específicos inicialmente
+        self.ocultar_campos_especificos()
 
     def create_formulas_panel(self):
         """Cria o painel de fórmulas no canto inferior direito"""
@@ -661,20 +983,12 @@ class VetAnesthesiaApp:
         
         self.formula_text = tk.Text(formula_frame, wrap=tk.WORD, height=10, width=40)
         self.formula_text.pack(fill='both', expand=True)
+        formulas = ""
+        formulas += """
         
-        formulas = """
-        [Cálculo de Dose]
-        Dose (mg) = Peso (kg) × Dose recomendada (mg/kg)
-        
-        [Taxa de Infusão]
-        Taxa (ml/h) = (Dose (μg/kg/min) × Peso (kg) × 60) / Concentração (μg/ml)
-        
-        [Gotas/min]
-        Gotas/min = (Taxa (ml/h) × Fator equipo) / 60
-        (Macrogotas: 20 gts/ml, Microgotas: 60 gts/ml)
-        
-        [Duração da Infusão]
-        Duração (h) = Volume da bolsa (ml) / Taxa (ml/h)
+        [Infusão Específica (Remifentanil, etc)]
+        Volume do fármaco (ml) = (Dose * Peso * Volume Seringa) / Concentração
+        Taxa (ml/h) = (Dose * Peso) / Concentração
         """
         self.formula_text.insert(tk.END, formulas)
         self.formula_text.config(state=tk.DISABLED)
@@ -1097,34 +1411,141 @@ class VetAnesthesiaApp:
                 
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao calcular dose: {str(e)}")
-
+            
+    def atualizar_campos_infusao(self, event):
+        """Mostra/oculta campos com base no tipo de infusão selecionado"""
+        tipo = self.infusion_tipo.get()
+        if tipo == "Padrão":
+            self.ocultar_campos_especificos()
+        else:
+            self.mostrar_campos_especificos()
+            
+    def ocultar_campos_especificos(self):
+        """Oculta os campos de infusão específica"""
+        for widget in self.campos_especificos.values():
+            widget.grid_remove()
+            
+    def mostrar_campos_especificos(self):
+        """Mostra os campos de infusão específica"""
+        for widget in self.campos_especificos.values():
+            widget.grid()
+    
+    def atualizar_campos_infusao(self, event):
+        """Mostra ou oculta campos com base no tipo de infusão selecionado"""
+        tipo = self.infusion_tipo.get()
+        if tipo == "Padrão":
+            self.ocultar_campos_especificos()
+        else:
+            self.mostrar_campos_especificos()        
+                
     def calculate_infusion(self):
-        """Calcula os parâmetros de infusão contínua"""
+        """Calcula os parâmetros de infusão contínua para ambos os tipos"""
         try:
+            # Obter valores básicos comuns a ambos os cálculos
             peso = float(self.infusion_peso.get())
-            volume = int(self.infusion_volume.get())
+            volume = float(self.infusion_volume.get())
             equipo = self.infusion_equipo.get()
-            taxa = float(self.infusion_taxa.get())
+            tipo = self.infusion_tipo.get()
             
-            # Criar configuração temporária
-            config = ConfigInfusao(
-                peso_kg=peso,
-                volume_bolsa_ml=volume,
-                equipo_tipo="microgotas" if "Micro" in equipo else "macrogotas",
-                taxa_ml_kg_h=taxa
-            )
+            # Determinar tipo de equipo (macrogotas ou microgotas)
+            equipo_tipo = "microgotas" if "Micro" in equipo else "macrogotas"
             
-            # Calcular taxas
-            resultados = calcular_taxas(config)
-            
-            # Mostrar resultados
-            self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
-            self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
-            self.result_duracao.config(text=f"{resultados['duracao_h']:.2f} horas")
-            
+            if tipo == "Padrão":
+                # CÁLCULO PADRÃO (taxa ml/kg/h)
+                taxa = float(self.infusion_taxa.get())
+                
+                # Criar configuração temporária
+                config = ConfigInfusao(
+                    peso_kg=peso,
+                    volume_bolsa_ml=volume,
+                    equipo_tipo=equipo_tipo,
+                    taxa_ml_kg_h=taxa
+                )
+                
+                # Calcular taxas
+                resultados = calcular_taxas(config)
+                
+                # Mostrar resultados
+                self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
+                self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
+                self.result_duracao.config(text=f"{resultados['duracao_h']:.2f} horas")
+                
+            else:
+                # CÁLCULO ESPECÍFICO (Remifentanil, Lidocaína, Cetamina)
+                dose = float(self.campos_especificos['entry_dose'].get())
+                conc = float(self.campos_especificos['entry_conc'].get())
+                
+                # Validar valores
+                if conc <= 0:
+                    raise ValueError("A concentração deve ser maior que zero")
+                if volume <= 0:
+                    raise ValueError("O volume da seringa deve ser maior que zero")
+                
+                # Calcular infusão específica
+                resultados = calcular_infusao_especifica(
+                    peso_kg=peso,
+                    dose_mcg_kg_h=dose,
+                    concentracao_mcg_ml=conc,
+                    volume_seringa_ml=volume,
+                    equipo_tipo=equipo_tipo
+                )
+                
+                # Mostrar resultados principais
+                self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
+                self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
+                
+                # Calcular duração (volume total / taxa)
+                duracao = volume / resultados['taxa_ml_h']
+                self.result_duracao.config(text=f"{duracao:.2f} horas")
+                
+                # Mostrar instruções de preparo em popup
+                messagebox.showinfo("Preparo da Seringa", 
+                    f"Adicione {resultados['volume_farmaco_ml']:.2f} ml do fármaco\n"
+                    f"Complete com {resultados['volume_dilente_ml']:.2f} ml de diluente\n"
+                    f"Volume total: {volume} ml")
+                
+        except ValueError as ve:
+            messagebox.showerror("Erro de Valor", f"Verifique os valores digitados:\n{str(ve)}")
+        except ZeroDivisionError:
+            messagebox.showerror("Erro de Cálculo", "Divisão por zero! Verifique os valores de concentração.")
         except Exception as e:
-            messagebox.showerror("Erro", f"Falha ao calcular infusão: {str(e)}")
-
+            messagebox.showerror("Erro Inesperado", f"Falha ao calcular infusão:\n{str(e)}")
+    def calcular_infusao_especifica(
+        peso_kg: float, 
+        dose_mcg_kg_h: float, 
+        concentracao_mcg_ml: float,
+        volume_seringa_ml: float = 20.0,
+        equipo_tipo: str = "macrogotas"
+    ) -> dict:
+        """
+        Calcula parâmetros para infusões específicas como Remifentanil, Lidocaína, Cetamina
+        
+        Fórmulas:
+        Volume do fármaco (ml) = (Dose * Peso * Volume da seringa) / Concentração
+        Taxa de infusão (ml/h) = (Dose * Peso) / Concentração
+        """
+        # Cálculo do volume do fármaco na seringa
+        volume_farmaco_ml = (dose_mcg_kg_h * peso_kg * volume_seringa_ml) / concentracao_mcg_ml
+        
+        # Verificar se o volume do fármaco não excede a capacidade da seringa
+        if volume_farmaco_ml > volume_seringa_ml:
+            raise ValueError("Volume do fármaco excede a capacidade da seringa!")
+        
+        # Cálculo da taxa de infusão em ml/h
+        taxa_ml_h = (dose_mcg_kg_h * peso_kg) / concentracao_mcg_ml
+        
+        # Cálculo de gotas/min
+        fator = 20 if equipo_tipo == "macrogotas" else 60
+        gotas_min = (taxa_ml_h * fator) / 60
+        
+        return {
+            'volume_farmaco_ml': volume_farmaco_ml,
+            'volume_dilente_ml': volume_seringa_ml - volume_farmaco_ml,
+            'taxa_ml_h': taxa_ml_h,
+            'gotas_min': gotas_min,
+            'fator_equipo': fator
+        }        
+            
     def register_session(self):
         """Registra uma nova sessão anestésica"""
         try:
