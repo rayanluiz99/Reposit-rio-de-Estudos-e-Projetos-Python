@@ -68,3 +68,7 @@ def deletar_protocolo(session: Session, protocolo_id: int) -> None:
             session.delete(pf)
         session.delete(protocolo)
         session.commit()
+        
+# Adicionar esta função para obter todos os fármacos
+def obter_todos_farmacos(session: Session) -> List[Farmaco]:
+    return session.exec(select(Farmaco)).all()        

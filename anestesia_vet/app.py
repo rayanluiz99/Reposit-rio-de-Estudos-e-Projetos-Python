@@ -1,11 +1,14 @@
 # Importações de modelos
 from models.protocolo import Protocolo, ProtocoloFarmaco
-from controllers.protocolo_controller import criar_protocolo, listar_protocolos, obter_farmacos_do_protocolo, obter_protocolo, deletar_protocolo
+from controllers.protocolo_controller import criar_protocolo, listar_protocolos, obter_farmacos_do_protocolo, obter_protocolo, deletar_protocolo, obter_todos_farmacos, adicionar_farmaco_a_protocolo
 import tkinter as tk
 from models.animal import Animal
 from models.farmaco import Farmaco
 from models.config_infusao import ConfigInfusao, TipoEquipo
 from models.sessao import SessaoAnestesia, SessaoAvulsaAnestesia
+# No topo do arquivo, adicione estes imports:
+
+
 
 # Importações de controllers
 from controllers.animal_controller import cadastrar_animal
@@ -13,7 +16,7 @@ from controllers.farmaco_controller import (
     cadastrar_farmaco,
     importar_farmacos_csv,
     exportar_farmacos_csv,
-    listar_farmacos
+    listar_farmacos,
 )
 from controllers.config_infusao_controller import (
     criar_config_infusao,
@@ -43,6 +46,21 @@ from tkinter.scrolledtext import ScrolledText
 
 # Importações do SQLModel
 from sqlmodel import Session, select
+
+
+def formatar_duracao(horas: float) -> str:
+        """Formata um tempo em horas (decimal) para horas e minutos."""
+        horas_inteiras = int(horas)
+        minutos = int((horas - horas_inteiras) * 60)
+        
+        if horas_inteiras > 0 and minutos > 0:
+            return f"{horas_inteiras}h {minutos}min"
+        elif horas_inteiras > 0:
+            return f"{horas_inteiras}h"
+        elif minutos > 0:
+            return f"{minutos}min"
+        else:
+            return "0min"
 
 class VetAnesthesiaApp:
     def __init__(self, root):
@@ -87,6 +105,8 @@ class VetAnesthesiaApp:
         # Atalho de teclado (MODIFICADO)
         self.root.bind("<F2>", lambda e: self.show_calculator())
 
+    
+    
     def show_calculator(self, event=None):
         """Calculadora veterinária com conversões práticas"""
         calc_window = tk.Toplevel(self.root)
@@ -242,6 +262,9 @@ class VetAnesthesiaApp:
             animais = session.exec(select(Animal)).all()
             self.animal_combobox['values'] = [f"{a.id} - {a.nome} ({a.especie})" for a in animais]
             
+            protocolos = listar_protocolos(session)
+            self.protocolo_combobox['values'] = [f"{p.id} - {p.nome}" for p in protocolos]
+            
             # Carregar fármacos para combobox
             farmacos = session.exec(select(Farmaco)).all()
             self.farmaco_combobox['values'] = [f"{f.id} - {f.nome} ({f.modo_uso})" for f in farmacos]
@@ -297,6 +320,52 @@ class VetAnesthesiaApp:
         
         # Evento de seleção
         self.protocolo_tree.bind('<<TreeviewSelect>>', self.selecionar_protocolo)
+    def adicionar_farmaco_protocolo(self):
+        """Janela para adicionar um fármaco ao protocolo selecionado"""
+        selected = self.protocolo_tree.selection()
+        
+        if not selected:
+            messagebox.showwarning("Aviso", "Selecione um protocolo para adicionar fármacos.")
+            return
+        
+        protocolo_id = self.protocolo_tree.item(selected[0])["values"][0]
+
+        window = tk.Toplevel(self.root)
+        window.title("Adicionar Fármaco ao Protocolo")
+        window.geometry("400x200")
+
+        # Seleção de fármaco
+        ttk.Label(window, text="Fármaco:").pack(pady=5)
+        farmaco_var = tk.StringVar()
+        farmaco_combo = ttk.Combobox(window, textvariable=farmaco_var, state="readonly", width=40)
+        farmaco_combo.pack(pady=5)
+
+        # Carrega os fármacos do banco
+        with Session(engine) as session:
+            farmacos = obter_todos_farmacos(session)
+            farmaco_combo["values"] = [f"{f.id} - {f.nome} ({f.modo_uso})" for f in farmacos]
+
+        def salvar_farmaco():
+            farmaco_str = farmaco_var.get()
+            if not farmaco_str:
+                messagebox.showerror("Erro", "Selecione um fármaco!")
+                return
+            
+            farmaco_id = int(farmaco_str.split(' - ')[0])
+            
+            with Session(engine) as session:
+                # Determinar ordem (último + 1)
+                stmt = select(ProtocoloFarmaco).where(ProtocoloFarmaco.protocolo_id == protocolo_id)
+                itens = session.exec(stmt).all()
+                ordem = len(itens) + 1
+                
+                # Adicionar fármaco ao protocolo
+                adicionar_farmaco_a_protocolo(session, protocolo_id, farmaco_id, ordem)
+                messagebox.showinfo("Sucesso", "Fármaco adicionado ao protocolo!")
+                window.destroy()
+                self.selecionar_protocolo(None)  # Atualizar lista
+
+        ttk.Button(window, text="Adicionar", command=salvar_farmaco).pack(pady=10)
 
     def criar_novo_protocolo(self):
         """Janela para criar novo protocolo"""
@@ -365,48 +434,52 @@ class VetAnesthesiaApp:
 
         window = tk.Toplevel(self.root)
         window.title("Adicionar Fármaco ao Protocolo")
-        window.geometry("400x300")
+        window.geometry("400x200")
 
         # Seleção de fármaco
         ttk.Label(window, text="Fármaco:").pack(pady=5)
         farmaco_var = tk.StringVar()
-        farmaco_combo = ttk.Combobox(window, textvariable=farmaco_var, state="readonly")
+        farmaco_combo = ttk.Combobox(window, textvariable=farmaco_var, state="readonly", width=40)
         farmaco_combo.pack(pady=5)
 
-        # Carrega os fármacos do banco
-        from controllers.farmaco_controller import listar_farmacos  # Certifique-se que essa função existe
+        # Carrega os fármacos do banco CORRETAMENTE
         with Session(engine) as session:
-            farmacos = listar_farmacos(session)
-            self._farmacos_disponiveis = {f.nome: f for f in farmacos}
-            farmaco_combo["values"] = list(self._farmacos_disponiveis.keys())
-
-        # Peso do animal para cálculo (simples)
-        ttk.Label(window, text="Peso do animal (kg):").pack(pady=5)
-        peso_entry = ttk.Entry(window)
-        peso_entry.pack(pady=5)
+            # Busca todos os fármacos usando a declaração SQLModel correta
+            stmt = select(Farmaco)
+            farmacos = session.exec(stmt).all()
+            
+            # Preenche o combobox com os fármacos
+            farmaco_combo["values"] = [f"{f.id} - {f.nome} ({f.modo_uso})" for f in farmacos]
 
         def salvar_farmaco():
-            nome_farmaco = farmaco_var.get()
-            peso_str = peso_entry.get()
-
-            if not nome_farmaco or not peso_str:
-                messagebox.showerror("Erro", "Preencha todos os campos.")
+            farmaco_str = farmaco_var.get()
+            if not farmaco_str:
+                messagebox.showerror("Erro", "Selecione um fármaco!")
                 return
             
-            try:
-                peso = float(peso_str)
-            except ValueError:
-                messagebox.showerror("Erro", "Peso inválido.")
-                return
-
-            farmaco = self._farmacos_disponiveis.get(nome_farmaco)
-            dose_total = (farmaco.dose or 0) * peso
-
-            from controllers.protocolo_controller import adicionar_farmaco_ao_protocolo
+            # Extrai o ID do fármaco da string formatada
+            farmaco_id = int(farmaco_str.split(' - ')[0])
+            
             with Session(engine) as session:
-                adicionar_farmaco_ao_protocolo(session, protocolo_id, farmaco.id, dose_total)
-                messagebox.showinfo("Sucesso", f"{farmaco.nome} adicionado com dose de {dose_total:.2f} ml.")
+                # Determinar a ordem (última posição + 1)
+                stmt = select(ProtocoloFarmaco).where(ProtocoloFarmaco.protocolo_id == protocolo_id)
+                itens = session.exec(stmt).all()
+                ordem = len(itens) + 1
+                
+                # Adicionar fármaco ao protocolo
+                pf = ProtocoloFarmaco(
+                    protocolo_id=protocolo_id,
+                    farmaco_id=farmaco_id,
+                    ordem=ordem
+                )
+                
+                session.add(pf)
+                session.commit()
+                messagebox.showinfo("Sucesso", "Fármaco adicionado ao protocolo!")
                 window.destroy()
+                
+                # Atualizar a lista de fármacos do protocolo
+                self.selecionar_protocolo(None)
 
         ttk.Button(window, text="Adicionar", command=salvar_farmaco).pack(pady=10)
             
@@ -440,7 +513,8 @@ class VetAnesthesiaApp:
     def carregar_protocolos(self):
         """Carrega todos os protocolos na treeview"""
         with Session(engine) as session:
-            protocolos = listar_protocolos(session)
+            # Usando a declaração correta para buscar protocolos
+            protocolos = session.exec(select(Protocolo)).all()
             
             # Limpar treeview
             for item in self.protocolo_tree.get_children():
@@ -464,22 +538,29 @@ class VetAnesthesiaApp:
         protocolo_id = self.protocolo_tree.item(selected[0])['values'][0]
         
         with Session(engine) as session:
-            farmacos = obter_farmacos_do_protocolo(session, protocolo_id)
+            # Busca os fármacos do protocolo usando a declaração correta
+            stmt = (
+                select(Farmaco, ProtocoloFarmaco.ordem)
+                .join(ProtocoloFarmaco, Farmaco.id == ProtocoloFarmaco.farmaco_id)
+                .where(ProtocoloFarmaco.protocolo_id == protocolo_id)
+                .order_by(ProtocoloFarmaco.ordem)
+            )
+            
+            resultados = session.exec(stmt).all()
             
             # Limpar treeview de fármacos
             for item in self.protocolo_farmaco_tree.get_children():
                 self.protocolo_farmaco_tree.delete(item)
                 
             # Adicionar fármacos
-            for farmaco, ordem in farmacos:
+            for farmaco, ordem in resultados:
                 self.protocolo_farmaco_tree.insert('', 'end', values=(
                     ordem,
                     farmaco.nome,
                     f"{farmaco.dose} {farmaco.unidade_dose}",
                     f"{farmaco.concentracao} mg/ml",
                     farmaco.modo_uso
-                ))        
-            
+                ))
     def create_animal_tab(self):
         """Cria a aba de cadastro de animais"""
         frame = ttk.Frame(self.notebook)
@@ -815,6 +896,9 @@ class VetAnesthesiaApp:
         self.farmaco_combobox.grid(row=2, column=1, sticky='w', padx=5, pady=2)
         self.farmaco_combobox.bind('<<ComboboxSelected>>', self.update_farmaco_info)
         
+         # Adicionar evento para atualizar peso quando animal for selecionado
+        self.animal_combobox.bind('<<ComboboxSelected>>', self.atualizar_peso_animal)
+        
         # Info do fármaco
         ttk.Label(form_frame, text="Dose:").grid(row=3, column=0, sticky='e', padx=5, pady=2)
         self.farmaco_dose = ttk.Label(form_frame, text="")
@@ -855,6 +939,18 @@ class VetAnesthesiaApp:
         
         self.session_tree.pack(expand=True, fill='both')
         self.load_sessions_list()
+        
+    def atualizar_peso_animal(self, event=None):
+        animal_str = self.animal_combobox.get()
+        if animal_str:
+            try:
+                animal_id = int(animal_str.split(' - ')[0])
+                with Session(engine) as session:
+                    animal = session.get(Animal, animal_id)
+                    if animal:
+                        self.session_peso.config(text=f"{animal.peso_kg} kg")
+            except:
+                pass    
         
     def carregar_protocolo_sessao(self):
         """Carrega os fármacos de um protocolo na sessão"""
@@ -983,17 +1079,20 @@ class VetAnesthesiaApp:
         
         self.formula_text = tk.Text(formula_frame, wrap=tk.WORD, height=10, width=40)
         self.formula_text.pack(fill='both', expand=True)
-        formulas = ""
-        formulas += """
         
-        [Infusão Específica (Remifentanil, etc)]
-        Volume do fármaco (ml) = (Dose * Peso * Volume Seringa) / Concentração
-        Taxa (ml/h) = (Dose * Peso) / Concentração
+        formulas = """
+        [Formatação de Duração]
+        Horas Inteiras = Parte inteira do valor
+        Minutos = (Parte decimal × 60)
+        
+        [Infusão Específica]
+        Volume do fármaco (ml) = (Dose × Peso × Volume Bolsa) / Concentração
+        Taxa (ml/h) = (Dose × Peso) / Concentração
+        Gotas/min = (Taxa × Fator Equipo) / 60
         """
+        
         self.formula_text.insert(tk.END, formulas)
         self.formula_text.config(state=tk.DISABLED)
-
-    # Métodos de controle (a serem implementados)
     def register_animal(self):
         """Cadastra um novo animal no sistema"""
         try:
@@ -1465,6 +1564,15 @@ class VetAnesthesiaApp:
                 # Calcular taxas
                 resultados = calcular_taxas(config)
                 
+                # Formatar duração
+                duracao_formatada = formatar_duracao(resultados['duracao_h'])
+            
+                # Mostrar resultados
+                self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
+                self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
+                self.result_duracao.config(text=duracao_formatada)
+                
+                
                 # Mostrar resultados
                 self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
                 self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
@@ -1479,14 +1587,14 @@ class VetAnesthesiaApp:
                 if conc <= 0:
                     raise ValueError("A concentração deve ser maior que zero")
                 if volume <= 0:
-                    raise ValueError("O volume da seringa deve ser maior que zero")
+                    raise ValueError("O volume da bolsa deve ser maior que zero")
                 
                 # Calcular infusão específica
                 resultados = calcular_infusao_especifica(
                     peso_kg=peso,
                     dose_mcg_kg_h=dose,
                     concentracao_mcg_ml=conc,
-                    volume_seringa_ml=volume,
+                    volume_bolsa_ml=volume,
                     equipo_tipo=equipo_tipo
                 )
                 
@@ -1494,15 +1602,22 @@ class VetAnesthesiaApp:
                 self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
                 self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
                 
-                # Calcular duração (volume total / taxa)
-                duracao = volume / resultados['taxa_ml_h']
-                self.result_duracao.config(text=f"{duracao:.2f} horas")
+                 # Calcular duração e formatar
+                duracao_h = volume / resultados['taxa_ml_h']
+                duracao_formatada = formatar_duracao(duracao_h)
                 
-                # Mostrar instruções de preparo em popup
-                messagebox.showinfo("Preparo da Seringa", 
-                    f"Adicione {resultados['volume_farmaco_ml']:.2f} ml do fármaco\n"
-                    f"Complete com {resultados['volume_dilente_ml']:.2f} ml de diluente\n"
-                    f"Volume total: {volume} ml")
+                self.result_taxa.config(text=f"{resultados['taxa_ml_h']:.2f} ml/h")
+                self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
+                self.result_duracao.config(text=duracao_formatada)
+                
+            # Mostrar instruções de preparo em popup
+                messagebox.showinfo("Instruções de Preparo", 
+                    f"Use {resultados['volume_farmaco_ml']:.2f} ml do fármaco\n"
+                    f"Adicione {resultados['volume_dilente_ml']:.2f} ml de diluente\n"
+                    f"Volume total = {resultados['volume_bolsa_ml']} ml (bolsa selecionada)\n\n"
+                    f"Taxa de infusão: {resultados['taxa_ml_h']:.2f} ml/h\n"
+                    f"Gotas/min: {resultados['gotas_min']:.2f} gts/min\n"
+                    f"Duração estimada: {duracao_formatada}")
                 
         except ValueError as ve:
             messagebox.showerror("Erro de Valor", f"Verifique os valores digitados:\n{str(ve)}")
