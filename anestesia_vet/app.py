@@ -183,10 +183,10 @@ class VetAnesthesiaApp:
             except:
                 display_var.set("ERRO")
 
-        def convert_mg_to_g():
+        def convert_mg_to_mcg():
             try:
                 mg = float(display_var.get())
-                display_var.set(str(round(mg / 1000, 6)))
+                display_var.set(str(round(mg * 1000, 6)))
             except:
                 display_var.set("ERRO")
 
@@ -198,6 +198,14 @@ class VetAnesthesiaApp:
             except:
                 display_var.set("ERRO")
 
+        def convert_drops_to_ml():
+            try:
+                drops = float(display_var.get())
+                ml = drops / 20
+                display_var.set(str(round(ml, 2)))
+            except:
+                display_var.set("ERRO")
+
         def convert_kg_to_lbs():
             try:
                 kg = float(display_var.get())
@@ -205,11 +213,24 @@ class VetAnesthesiaApp:
             except:
                 display_var.set("ERRO")
 
-        # Botões de conversão (2 linhas)
+        def convert_lbs_to_kg():
+            try:
+                lbs = float(display_var.get())
+                display_var.set(str(round(lbs / 2.20462, 2)))
+            except:
+                display_var.set("ERRO")
+
+        # MODIFIQUE O FRAME DE CONVERSÕES:
+        conv_frame = ttk.LabelFrame(calc_window, text="Conversões Clínicas", padding=10)
+        conv_frame.pack(pady=10, fill='x', padx=10)
+
+        # Botões de conversão (2 linhas com 4 colunas)
         ttk.Button(conv_frame, text="μg → mg", command=convert_mcg_to_mg).grid(row=0, column=0, padx=5, pady=5, sticky='ew')
-        ttk.Button(conv_frame, text="mg → g", command=convert_mg_to_g).grid(row=0, column=1, padx=5, pady=5, sticky='ew')
-        ttk.Button(conv_frame, text="mL → gotas", command=convert_ml_to_drops).grid(row=1, column=0, padx=5, pady=5, sticky='ew')
-        ttk.Button(conv_frame, text="kg → lbs", command=convert_kg_to_lbs).grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="mg → μg", command=convert_mg_to_mcg).grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="mL → gotas", command=convert_ml_to_drops).grid(row=0, column=2, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="gotas → mL", command=convert_drops_to_ml).grid(row=0, column=3, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="kg → lbs", command=convert_kg_to_lbs).grid(row=1, column=0, padx=5, pady=5, sticky='ew')
+        ttk.Button(conv_frame, text="lbs → kg", command=convert_lbs_to_kg).grid(row=1, column=1, padx=5, pady=5, sticky='ew')
 
         # Configuração responsiva
         for i in range(2):

@@ -1,0 +1,54 @@
+nome,dose,concentracao,unidade_dose,unidade_concentracao,modo_uso,volume_seringa,comentario
+Remifentanil,5,0.5,µg/kg/h,µg/ml,infusão contínua,0.20,Analgésico opioide ultrapotente
+Remifentanil,1,50,µg/kg,µg/ml,bolus,,Analgésico opioide ultrapotente (bolus)
+Sufentanil,1,50,µg/kg/h,µg/ml,infusão contínua,0.40,Analgésico opioide
+Sufentanil,0.3,5,µg/kg,µg/ml,bolus,,Analgésico opioide (bolus)
+Alfentanil,60,500,µg/kg/h,µg/ml,infusão contínua,2.40,Analgésico opioide de curta duração
+Alfentanil,10,500,µg/kg,µg/ml,bolus,,Analgésico opioide (bolus)
+Fentanil,5,50,µg/kg/h,µg/ml,infusão contínua,2.00,Analgésico opioide
+Fentanil,5,50,µg/kg,µg/ml,bolus,,Analgésico opioide (bolus)
+Morfina,120,10,µg/kg/h,µg/ml,infusão contínua,0.24,Analgésico opioide
+Morfina,100,10,µg/kg,µg/ml,bolus,,Analgésico opioide (bolus)
+Lidocaína,0.5,20,mg/kg/h,mg/ml,infusão contínua,0.50,Anestésico local/antiarrítmico
+Lidocaína,2,20,mg/kg,mg/ml,bolus,,Anestésico local/antiarrítmico (bolus)
+Cetamina,0.6,100,mg/kg/h,mg/ml,infusão contínua,0.12,Anestésico dissociativo
+Cetamina,5,100,mg/kg,mg/ml,bolus,,Anestésico dissociativo (bolus)
+Dexmedetomidina,1,500,µg/kg/h,µg/ml,infusão contínua,0.04,Sedativo α2-agonista
+Dexmedetomidina,5,500,µg/kg,µg/ml,bolus,,Sedativo α2-agonista (bolus)
+Maropitant,100,10000,µg/kg/h,µg/ml,infusão contínua,0.20,Antiemético
+Maropitant,1000,10000,µg/kg,µg/ml,bolus,,Antiemético (bolus)
+Magnésio,80,100,mg/kg/h,mg/ml,infusão contínua,16.00,Eletrólito/anticonvulsivante
+Midazolam,0.1,5,mg/kg/h,mg/ml,infusão contínua,0.40,Sedativo benzodiazepínico
+Midazolam,0.2,5,mg/kg,mg/ml,bolus,,Sedativo benzodiazepínico (bolus)
+Dopamina,10,5000,µg/kg/min,µg/ml,infusão contínua,2.40,Vasoativo
+Dobutamina,5,12500,µg/kg/min,µg/ml,infusão contínua,0.48,Vasoativo
+Norepinefrina,0.5,2000,µg/kg/min,µg/ml,infusão contínua,0.30,Vasopressor
+Milrinona,0.4,1000,µg/kg/min,µg/ml,infusão contínua,0.48,Inotrópico
+Adrenalina,0.1,1000,µg/kg/min,µg/ml,infusão contínua,0.12,Vasopressor
+Fenilefrina,0.5,10000,µg/kg/min,µg/ml,infusão contínua,0.06,Vasopressor
+Furosemida,0.1,10,mg/kg/h,mg/ml,infusão contínua,0.20,Diurético
+Furosemida,2,10,mg/kg,mg/ml,bolus,,Diurético (bolus)
+Metoclopramida,0.04,5,mg/kg/h,mg/ml,infusão contínua,0.16,Antiemético
+Metoclopramida,0.2,5,mg/kg,mg/ml,bolus,,Antiemético (bolus)
+Rocurônio,0.2,10,mg/kg/h,mg/ml,infusão contínua,0.40,Bloqueador neuromuscular
+Rocurônio,0.6,10,mg/kg,mg/ml,bolus,,Bloqueador neuromuscular (bolus)
+Atracúrio,0.18,10,mg/kg/h,mg/ml,infusão contínua,0.36,Bloqueador neuromuscular
+Atracúrio,0.5,10,mg/kg,mg/ml,bolus,,Bloqueador neuromuscular (bolus)
+Cisatracúrio,0.06,2,mg/kg/h,mg/ml,infusão contínua,0.60,Bloqueador neuromuscular
+Cisatracúrio,0.15,2,mg/kg,mg/ml,bolus,,Bloqueador neuromuscular (bolus)
+Propofol,4,10,mg/kg,mg/ml,bolus,,Indutor anestésico
+Propofol,2,10,mg/kg,mg/ml,bolus,,Indutor anestésico (dose reduzida)
+Dipirona,25,50,mg/kg,mg/ml,bolus,,Analgésico/antipirético (bolus)
+Dipirona,10,50,mg/kg/h,mg/ml,infusão contínua,0.40,Analgésico/antipirético em CRI
+Atropina,0.02,0.5,mg/kg,mg/ml,bolus,,Anticolinérgico para bradicardia
+Glicopirrolato,0.01,0.2,mg/kg,mg/ml,bolus,,Anticolinérgico
+Buprenorfina,0.02,0.3,mg/kg,mg/ml,bolus,,Analgésico opioide moderado
+Metadona,0.2,10,mg/kg,mg/ml,bolus,,Analgésico opioide
+Acepromazina,0.03,2,mg/kg,mg/ml,bolus,,Tranquilizante
+Flumazenil,0.01,0.1,mg/kg,mg/ml,bolus,,Antagonista de benzodiazepínicos
+Naloxona,0.02,0.4,mg/kg,mg/ml,bolus,,Antagonista de opioides
+Butorfanol,0.2,10,mg/kg,mg/ml,bolus,,Analgésico/antitusígeno
+Medetomidina,0.01,1,mg/kg,mg/ml,bolus,,Sedativo α2-agonista
+Atipamezol,0.1,5,mg/kg,mg/ml,bolus,,Antagonista de α2-agonistas
+Famotidina,0.5,10,mg/kg,mg/ml,bolus,,Antagonista H2
+Heparina,100,5000,IU/kg,IU/ml,bolus,,Anticoagulante (dose inicial)
