@@ -100,8 +100,71 @@ def registrar_sessao():
         except Exception as e:
             print(f"\nErro inesperado: {e}")
 
+def gerar_prescricao_protocolo_txt():
+    """Gera prescrição apenas com os fármacos do protocolo selecionado"""
+    try:
+        id_sessao = int(input("ID da sessão para prescrição de protocolo: "))    
+        
+        with Session(engine) as session:
+            sessao = session.get(SessaoAnestesia, id_sessao)
+            if not sessao:
+                print("Sessão não encontrada.")
+                return    
+            
+            animal = session.get(Animal, sessao.id_animal) if sessao.id_animal else None
+            protocolo = session.get(Protocolo, sessao.protocolo_id) if sessao.protocolo_id else None
+            
+            if not protocolo:
+                print("Nenhum protocolo associado a esta sessão.")
+                return
+
+            # Conteúdo base do relatório
+            conteudo = f"""---- PRESCRIÇÃO DE PROTOCOLO ----
+Data: {sessao.data.strftime('%d/%m/%Y %H:%M')}
+Animal: {animal.nome if animal else 'Avulso'}
+Espécie: {animal.especie if animal else 'Não informada'}
+Peso: {f"{animal.peso_kg}kg" if animal else 'Informado manualmente'}
+
+PROTOCOLO: {protocolo.nome}
+"""
+
+            # Obter e calcular doses para cada fármaco do protocolo
+            from controllers.protocolo_controller import obter_farmacos_do_protocolo
+            farmacos_protocolo = obter_farmacos_do_protocolo(session, sessao.protocolo_id)
+            
+            if farmacos_protocolo:
+                conteudo += "\nFÁRMACOS DO PROTOCOLO:"
+                for farmaco, ordem in farmacos_protocolo:
+                    # Calcular a dose para o animal
+                    if farmaco.modo_uso == "bolus":
+                        dose_ml = (animal.peso_kg * farmaco.dose) / farmaco.concentracao
+                    else:
+                        mult = 60 if "min" in farmaco.unidade_dose else 1
+                        dose_ml = (animal.peso_kg * farmaco.dose * mult) / farmaco.concentracao
+                    
+                    conteudo += f"\n\n- {farmaco.nome}: {dose_ml:.2f} ml"
+                    conteudo += f"\n  Dose: {farmaco.dose} {farmaco.unidade_dose}"
+                    conteudo += f"\n  Concentração: {farmaco.concentracao} mg/ml"
+                    conteudo += f"\n  Modo de uso: {farmaco.modo_uso.capitalize()}"
+
+            # Fechar o conteúdo
+            conteudo += f"\n\nObservações: {sessao.observacoes or 'Nenhuma'}"
+            conteudo += "\n----------------------------"
+            
+            # Salvar arquivo
+            os.makedirs("prescricoes", exist_ok=True)
+            nome_arquivo = f"prescricoes/prescricao_protocolo_{id_sessao}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+
+            with open(nome_arquivo, "w", encoding="utf-8") as file:
+                file.write(conteudo)
+
+            print(f"\nPrescrição de protocolo gerada em: {nome_arquivo}")    
+
+    except Exception as e:
+        print(f"\nErro ao gerar prescrição de protocolo: {e}")            
+
 def gerar_prescricao_txt():
-    """Gera um arquivo TXT com a prescrição anestésica, incluindo protocolos se aplicável"""
+    """Gera um arquivo TXT com a prescrição anestésica"""
     try:
         id_sessao = int(input("ID da sessão para prescrição: "))    
         
@@ -132,18 +195,14 @@ def gerar_prescricao_txt():
                 animal.especie = sessao.especie
                 animal.peso_kg = sessao.peso_kg
 
-            # Cálculo da dose sugerida - CORRIGIDO
+            # Cálculo da dose sugerida
             dose_sugerida = "N/A"
             if animal and farmaco:
                 try:
                     if farmaco.modo_uso == "bolus":
                         dose_sugerida = (animal.peso_kg * farmaco.dose) / farmaco.concentracao
                     else:  # infusão contínua
-                        # Verifica se a unidade é por minuto (ajustar para hora)
-                        if "min" in farmaco.unidade_dose:
-                            multiplicador = 60
-                        else:
-                            multiplicador = 1
+                        multiplicador = 60 if "min" in farmaco.unidade_dose else 1
                         dose_sugerida = (animal.peso_kg * farmaco.dose * multiplicador) / farmaco.concentracao
                 except Exception as e:
                     print(f"Erro no cálculo da dose sugerida: {e}")
@@ -167,7 +226,7 @@ Sugerida: {dose_sugerida if isinstance(dose_sugerida, str) else f"{dose_sugerida
 Utilizada: {sessao.dose_utilizada_ml:.2f} ml"""
 
             # Adicionar informações do protocolo se existir
-            if hasattr(sessao, 'protocolo_id') and sessao.protocolo_id:
+            if not is_avulsa and hasattr(sessao, 'protocolo_id') and sessao.protocolo_id:
                 from controllers.protocolo_controller import obter_farmacos_do_protocolo
                 
                 protocolo = session.get(Protocolo, sessao.protocolo_id)
@@ -182,27 +241,10 @@ Utilizada: {sessao.dose_utilizada_ml:.2f} ml"""
                             if farmaco_proto.modo_uso == "bolus":
                                 dose_ml = (animal.peso_kg * farmaco_proto.dose) / farmaco_proto.concentracao
                             else:
-                                if "min" in farmaco_proto.unidade_dose:
-                                    mult = 60
-                                else:
-                                    mult = 1
+                                mult = 60 if "min" in farmaco_proto.unidade_dose else 1
                                 dose_ml = (animal.peso_kg * farmaco_proto.dose * mult) / farmaco_proto.concentracao
                             
                             conteudo += f"\n- {farmaco_proto.nome}: {dose_ml:.2f} ml ({farmaco_proto.dose} {farmaco_proto.unidade_dose})"
-
-            # Adicionar configuração de infusão se existir
-            if hasattr(sessao, 'config_infusao_id') and sessao.config_infusao_id:
-                config = session.get(ConfigInfusao, sessao.config_infusao_id)
-                if config:
-                    from controllers.config_infusao_controller import calcular_taxas
-                    resultados = calcular_taxas(config)
-                    
-                    conteudo += f"\n\nCONFIGURAÇÃO DE INFUSÃO:"
-                    conteudo += f"\n- Volume da bolsa: {config.volume_bolsa_ml} ml"
-                    conteudo += f"\n- Tipo de equipo: {config.equipo_tipo}"
-                    conteudo += f"\n- Taxa: {resultados['taxa_ml_h']} ml/h"
-                    conteudo += f"\n- Gotas/min: {resultados['gotas_min']}"
-                    conteudo += f"\n- Duração estimada: {resultados['duracao_str']}"
 
             # Fechar o conteúdo
             conteudo += f"\n\nObservações: {sessao.observacoes or 'Nenhuma'}"

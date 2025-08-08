@@ -945,8 +945,18 @@ class VetAnesthesiaApp:
         
         ttk.Button(btn_frame, text="Calcular Dose", command=self.calculate_dose).pack(side='left', padx=5)
         ttk.Button(btn_frame, text="Registrar Sessão", command=self.register_session).pack(side='left', padx=5)
-        ttk.Button(btn_frame, text="Gerar Prescrição", command=self.generate_prescription).pack(side='left', padx=5)
+
+        btn_frame = ttk.Frame(form_frame)
+        btn_frame.grid(row=7, column=0, columnspan=3, pady=10)
         
+        ttk.Button(btn_frame, text="Calcular Dose", command=self.calculate_dose).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="Registrar Sessão", command=self.register_session).pack(side='left', padx=5)
+        ttk.Button(btn_frame, text="Gerar Prescrição", command=self.generate_prescription).pack(side='left', padx=5)
+        presc_btn_frame = ttk.Frame(btn_frame)
+        presc_btn_frame.pack(side='left', padx=5)
+        
+        ttk.Button(presc_btn_frame, text="Gerar Prescrição", command=self.generate_prescription).pack(side='left')
+        ttk.Button(presc_btn_frame, text="Gerar Prescrição Protocolo", command=self.generate_protocol_prescription).pack(side='left', padx=(5,0))
         # Lista de sessões
         list_frame = ttk.LabelFrame(frame, text="Sessões Registradas", padding=10)
         list_frame.pack(expand=True, fill='both', pady=5)
@@ -1015,6 +1025,22 @@ class VetAnesthesiaApp:
                     farmaco.modo_uso,
                     f"{dose_ml:.2f} ml"
                 ))    
+
+    def generate_protocol_prescription(self):
+        """Gera prescrição apenas para o protocolo selecionado"""
+        try:
+            selected_item = self.session_tree.selection()
+            if not selected_item:
+                messagebox.showerror("Erro", "Selecione uma sessão na lista!")
+                return
+                
+            session_id = self.session_tree.item(selected_item[0])['values'][0]
+            
+            from controllers.sessao_controller import gerar_prescricao_protocolo_txt
+            gerar_prescricao_protocolo_txt()
+            
+        except Exception as e:
+            messagebox.showerror("Erro", f"Falha ao gerar prescrição de protocolo: {str(e)}")
 
     def create_infusion_tab(self):
         """Cria a aba de configuração de infusão contínua"""
