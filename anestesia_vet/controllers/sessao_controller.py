@@ -8,7 +8,13 @@ from database.engine import engine
 from sqlmodel import Session, select
 from datetime import datetime, timezone
 from typing import Optional
-from controllers.config_infusao_controller import criar_config_infusao, calcular_taxas
+from controllers.config_infusao_controller import (
+    criar_config_infusao, 
+    calcular_taxas,
+    calcular_infusao_continua,
+    calcular_infusao_especifica
+)
+from controllers.protocolo_controller import obter_farmacos_do_protocolo
 
 def registrar_sessao():
     """Registra uma nova sessão anestésica, com cálculo automático de dose"""
@@ -29,6 +35,20 @@ def registrar_sessao():
             if farmaco.modo_uso not in ["bolus", "infusão contínua"]:
                 print(f"Modo de uso inválido para {farmaco.nome}")
                 return
+            if farmaco.modo_uso == "infusão contínua":
+                # Obter tipo de cálculo
+                modo_calculo = "peso"  # Padrão
+                if farmaco.tipo_infusao == "vasoativo":
+                    modo_calculo = "volume"
+                
+                config = criar_config_infusao(
+                    session=session,
+                    peso_kg=peso,
+                    volume_bolsa_ml=250.0,  # Valor padrão para vasoativos
+                    equipo_tipo="microgotas",
+                    modo_calculo=modo_calculo
+                )
+                sessao.config_infusao_id = config.id
 
             # Obter peso
             if id_animal:
@@ -65,9 +85,8 @@ def registrar_sessao():
             try:
                 if farmaco.modo_uso == "bolus":
                     dose_sugerida = (peso * farmaco.dose) / farmaco.concentracao
-                else:  # infusão contínua
-                    multiplicador = 60 if "min" in farmaco.unidade_dose else 1
-                    dose_sugerida = (peso * farmaco.dose * multiplicador) / farmaco.concentracao
+                else:
+                    dose_sugerida = calcular_dose_infusao(peso, farmaco)
                 
                 print(f"\nDose sugerida: {dose_sugerida:.2f}ml ({farmaco.unidade_dose})")
 
@@ -226,25 +245,25 @@ Sugerida: {dose_sugerida if isinstance(dose_sugerida, str) else f"{dose_sugerida
 Utilizada: {sessao.dose_utilizada_ml:.2f} ml"""
 
             # Adicionar informações do protocolo se existir
-            if not is_avulsa and hasattr(sessao, 'protocolo_id') and sessao.protocolo_id:
-                from controllers.protocolo_controller import obter_farmacos_do_protocolo
+            if hasattr(sessao, 'id_protocolo') and sessao.id_protocolo:
+                protocolo = session.get(Protocolo, sessao.id_protocolo)
+                conteudo += f"\n📋 PROTOCOLO UTILIZADO: {protocolo.nome}\n"
+                farmacos_protocolo = obter_farmacos_do_protocolo(session, protocolo.id)
                 
-                protocolo = session.get(Protocolo, sessao.protocolo_id)
-                if protocolo:
-                    conteudo += f"\n\nPROTOCOLO: {protocolo.nome}"
-                    farmacos_protocolo = obter_farmacos_do_protocolo(session, sessao.protocolo_id)
-                    
-                    if farmacos_protocolo:
-                        conteudo += "\n\nFÁRMACOS DO PROTOCOLO:"
-                        for farmaco_proto, ordem in farmacos_protocolo:
-                            # Calcular a dose para cada fármaco do protocolo
-                            if farmaco_proto.modo_uso == "bolus":
-                                dose_ml = (animal.peso_kg * farmaco_proto.dose) / farmaco_proto.concentracao
-                            else:
-                                mult = 60 if "min" in farmaco_proto.unidade_dose else 1
-                                dose_ml = (animal.peso_kg * farmaco_proto.dose * mult) / farmaco_proto.concentracao
-                            
-                            conteudo += f"\n- {farmaco_proto.nome}: {dose_ml:.2f} ml ({farmaco_proto.dose} {farmaco_proto.unidade_dose})"
+                for farmaco, ordem in farmacos_protocolo:
+                    # Cálculo da dose para o animal
+                    if animal:
+                        if farmaco.modo_uso == "bolus":
+                            dose_ml = (animal.peso_kg * farmaco.dose) / farmaco.concentracao
+                        else:
+                            mult = 60 if "min" in farmaco.unidade_dose else 1
+                            dose_ml = (animal.peso_kg * farmaco.dose * mult) / farmaco.concentracao
+                        
+                        conteudo += (
+                            f"\n - {farmaco.nome}: {dose_ml:.2f}ml "
+                            f"({farmaco.dose} {farmaco.unidade_dose})"
+                        )
+            
 
             # Fechar o conteúdo
             conteudo += f"\n\nObservações: {sessao.observacoes or 'Nenhuma'}"
@@ -332,3 +351,14 @@ def registrar_sessao_avulsa():
             
     except Exception as e:
         print(f"\nErro ao registrar sessão: {e}")
+
+def calcular_dose_infusao(peso_kg: float, farmaco: Farmaco) -> float:
+    """Calcula dose para infusão contínua com tratamento de unidades"""
+    if farmaco.modo_uso == "bolus":
+        return (peso_kg * farmaco.dose) / farmaco.concentracao
+    
+    # Converter unidades para padrão mcg/kg/min
+    dose_mcg = farmaco.dose * 1000 if "mg" in farmaco.unidade_dose else farmaco.dose
+    dose_por_min = dose_mcg / 60 if "/h" in farmaco.unidade_dose else dose_mcg
+    
+    return (peso_kg * dose_por_min * 60) / farmaco.concentracao        

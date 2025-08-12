@@ -27,17 +27,14 @@ def listar_protocolos(session: Session) -> List[Protocolo]:
 def obter_protocolo(session: Session, protocolo_id: int) -> Protocolo:
     return session.get(Protocolo, protocolo_id)
 
-def obter_farmacos_do_protocolo(session: Session, protocolo_id: int) -> List[Tuple[Farmaco, int]]:
-    stmt = select(ProtocoloFarmaco).where(ProtocoloFarmaco.protocolo_id == protocolo_id).order_by(ProtocoloFarmaco.ordem)
-    resultados = session.exec(stmt).all()
-    
-    farmacos = []
-    for pf in resultados:
-        farmaco = session.get(Farmaco, pf.farmaco_id)
-        if farmaco:
-            farmacos.append((farmaco, pf.ordem))
-    
-    return farmacos
+def obter_farmacos_do_protocolo(session: Session, protocolo_id: int):
+    stmt = (
+        select(Farmaco, ProtocoloFarmaco.ordem)
+        .join(ProtocoloFarmaco, Farmaco.id == ProtocoloFarmaco.farmaco_id)
+        .where(ProtocoloFarmaco.protocolo_id == protocolo_id)
+        .order_by(ProtocoloFarmaco.ordem)
+    )
+    return session.exec(stmt).all()
 
 def adicionar_farmaco_a_protocolo(session: Session, protocolo_id: int, farmaco_id: int, ordem: int = None) -> ProtocoloFarmaco:
     # Se não for passada a ordem, coloca no final

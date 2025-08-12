@@ -4,10 +4,10 @@ PRESCRIÇÃO ANESTÉSICA - Sessão #1
 🐾 DADOS DO PACIENTE:
 Nome: Thor
 Espécie: Cão
-Peso: 38.0 kg
+Peso: 10.0 kg
 
 💊 DADOS FARMACOLÓGICOS:
-Medicação: Fentanil
-Dose: 5.0 µg/kg
+Medicação: Remifentanil
+Dose: 1.0 µg/kg
 Concentração: 50.0 mg/ml
-Volume administrado: 3.80 ml
+Volume administrado: 0.20 ml

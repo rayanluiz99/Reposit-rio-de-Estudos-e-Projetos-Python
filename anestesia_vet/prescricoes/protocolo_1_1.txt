@@ -1,0 +1,17 @@
+PRESCRIÇÃO ANESTÉSICA - Protocolo: adw
+==================================================
+Animal: ggg (Cão)
+Peso: 10.0 kg
+Data: 12/08/2025 12:18
+
+MEDICAÇÕES:
+
+- Propofol:
+  Dose: 0.3 mg/kg/min
+  Volume a administrar: 18.00 ml
+  Modo de uso: infusão contínua
+
+- Midazolam:
+  Dose: 0.2 mg/kg
+  Volume a administrar: 0.40 ml
+  Modo de uso: bolus
