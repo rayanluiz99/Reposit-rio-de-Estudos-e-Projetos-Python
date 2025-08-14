@@ -24,7 +24,12 @@ from controllers.config_infusao_controller import (
     calcular_infusao_especifica,
     calcular_infusao_continua,
     calcular_taxas,
-    calcular_infusao_planilha
+    calcular_infusao_planilha,
+    calcular_vazao,
+    calcular_gotas_min,
+    calcular_dose_total,
+    calcular_volume_farmaco,
+    calcular_duracao
 )
 from controllers.sessao_controller import (
     registrar_sessao,
@@ -51,18 +56,18 @@ from sqlmodel import Session, select
 
 
 def formatar_duracao(horas: float) -> str:
-        """Formata um tempo em horas (decimal) para horas e minutos."""
-        horas_inteiras = int(horas)
-        minutos = int((horas - horas_inteiras) * 60)
-        
-        if horas_inteiras > 0 and minutos > 0:
-            return f"{horas_inteiras}h {minutos}min"
-        elif horas_inteiras > 0:
-            return f"{horas_inteiras}h"
-        elif minutos > 0:
-            return f"{minutos}min"
-        else:
-            return "0min"
+    """Formata um tempo em horas (decimal) para horas e minutos."""
+    horas_inteiras = int(horas)
+    minutos = int((horas - horas_inteiras) * 60)
+    
+    if horas_inteiras > 0 and minutos > 0:
+        return f"{horas_inteiras}h {minutos}min"
+    elif horas_inteiras > 0:
+        return f"{horas_inteiras}h"
+    elif minutos > 0:
+        return f"{minutos}min"
+    else:
+        return "0min"
 
 class VetAnesthesiaApp:
     def __init__(self, root):
@@ -1163,13 +1168,24 @@ class VetAnesthesiaApp:
         self.infusion_equipo = ttk.Combobox(form_frame, values=["Macrogotas (20 gts/ml)", "Microgotas (60 gts/ml)"], width=20)
         self.infusion_equipo.grid(row=5, column=1, sticky='w', padx=5, pady=2)
         self.infusion_equipo.current(0)
-        
+        # Novo campo: Taxa de infusão (ml/kg/h)
+        ttk.Label(form_frame, text="Taxa (ml/kg/h):").grid(row=4, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_taxa = ttk.Entry(form_frame, width=10)
+        self.infusion_taxa.grid(row=4, column=1, sticky='w', padx=5, pady=2)
+        self.infusion_taxa.insert(0, "10")  # Valor padrão
+
+        # Novo campo: Equipo
+        ttk.Label(form_frame, text="Equipo:").grid(row=5, column=0, sticky='e', padx=5, pady=2)
+        self.infusion_equipo = ttk.Combobox(form_frame, values=["Macrogotas", "Microgotas"], width=15)
+        self.infusion_equipo.grid(row=5, column=1, sticky='w', padx=5, pady=2)
+        self.infusion_equipo.current(0)
+
         # Modo de cálculo
-        ttk.Label(form_frame, text="Modo de cálculo:").grid(row=6, column=0, sticky='e', padx=5, pady=2)
-        self.infusion_modo = ttk.Combobox(form_frame, values=["Taxa (ml/h) - Baseado no Peso", "Solução - Preparar Mistura"], width=30)
-        self.infusion_modo.grid(row=6, column=1, sticky='w', padx=5, pady=2)
-        self.infusion_modo.current(0)
-        self.infusion_modo.bind("<<ComboboxSelected>>", self.toggle_infusion_fields)
+        # ttk.Label(form_frame, text="Modo de cálculo:").grid(row=6, column=0, sticky='e', padx=5, pady=2)
+        # self.infusion_modo = ttk.Combobox(form_frame, values=["Taxa (ml/h) - Baseado no Peso", "Solução - Preparar Mistura"], width=30)
+        # self.infusion_modo.grid(row=6, column=1, sticky='w', padx=5, pady=2)
+        # self.infusion_modo.current(0)
+        # self.infusion_modo.bind("<<ComboboxSelected>>", self.toggle_infusion_fields)
         # Botão de cálculo
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=7, column=0, columnspan=2, pady=10)
@@ -1190,6 +1206,24 @@ class VetAnesthesiaApp:
         ttk.Label(results_frame, text="Duração estimada:").grid(row=2, column=0, sticky='e', padx=5, pady=2)
         self.result_duracao = ttk.Label(results_frame, text="")
         self.result_duracao.grid(row=2, column=1, sticky='w', padx=5, pady=2)
+
+        ttk.Label(results_frame, text="Vazão (ml/h):").grid(row=3, column=0, sticky='e', padx=5, pady=2)
+        self.result_vazao = ttk.Label(results_frame, text="")
+        self.result_vazao.grid(row=3, column=1, sticky='w', padx=5, pady=2)
+
+        # Tabela para resultados dos fármacos
+        farmaco_frame = ttk.LabelFrame(form_frame, text="Cálculos por Fármaco", padding=10)
+        farmaco_frame.grid(row=9, column=0, columnspan=2, sticky='ew', pady=5)
+        
+        columns = ("Fármaco", "Dose", "Dose Total", "Concentração", "Volume")
+        self.farmaco_result_tree = ttk.Treeview(farmaco_frame, columns=columns, show='headings', height=5)
+        
+        for col in columns:
+            self.farmaco_result_tree.heading(col, text=col)
+            self.farmaco_result_tree.column(col, width=100, anchor='center')
+        
+        self.farmaco_result_tree.pack(fill='both', expand=True)
+
         
         # Carregar fármacos
         self.load_farmacos_infusao()
@@ -1697,53 +1731,56 @@ class VetAnesthesiaApp:
             # Obter valores dos campos
             try:
                 peso = float(self.infusion_peso.get())
-                taxa = float(self.infusion_taxa.get())  # Nova entrada: taxa ml/kg/h
+                taxa = float(self.infusion_taxa.get())
                 volume_bolsa = float(self.infusion_volume.get())
+                equipo = self.infusion_equipo.get()
+                
                 if peso <= 0 or volume_bolsa <= 0 or taxa <= 0:
                     raise ValueError("Valores devem ser positivos")
             except:
                 messagebox.showerror("Erro", "Digite valores válidos para peso, taxa e volume")
                 return
             
-            equipo = self.infusion_equipo.get()
-            equipo_tipo = "microgotas" if "Micro" in equipo else "macrogotas"
+            # Calcular valores gerais
+            vazao_ml_h = calcular_vazao(peso, taxa)
+            duracao_h = calcular_duracao(volume_bolsa, vazao_ml_h)
+            gotas_min = calcular_gotas_min(vazao_ml_h, equipo)
             
+            # Exibir resultados gerais
+            self.result_vazao.config(text=f"{vazao_ml_h:.2f} ml/h")
+            self.result_taxa.config(text=f"{taxa} ml/kg/h")
+            self.result_gotas.config(text=f"{gotas_min:.2f} gts/min")
+            self.result_duracao.config(text=formatar_duracao(duracao_h))
+            
+            # Obter todos os fármacos de infusão contínua
             with Session(engine) as session:
-                farmaco = session.get(Farmaco, farmaco_id)
-                if not farmaco:
-                    messagebox.showerror("Erro", "Fármaco não encontrado!")
-                    return
+                farmacos = session.exec(
+                    select(Farmaco).where(Farmaco.modo_uso == "infusão contínua")
+                ).all()
                 
-                # Chamar função de cálculo
-                resultados = calcular_infusao_planilha(
-                    peso_kg=peso,
-                    taxa_ml_kg_h=taxa,
-                    volume_bolsa_ml=volume_bolsa,
-                    equipo_tipo=equipo_tipo,
-                    dose_farmaco=farmaco.dose,
-                    unidade_dose=farmaco.unidade_dose,
-                    concentracao=farmaco.concentracao
-                )
+                # Limpar treeview
+                for item in self.farmaco_result_tree.get_children():
+                    self.farmaco_result_tree.delete(item)
                 
-                # Exibir resultados
-                self.result_taxa.config(text=f"{resultados['vazao_ml_h']:.2f} ml/h")
-                self.result_gotas.config(text=f"{resultados['gotas_min']:.2f} gts/min")
-                self.result_duracao.config(text=resultados['duracao_h'])
-                
-                # Mostrar detalhes do fármaco
-                details = (
-                    f"Dose Total: {resultados['dose_total_ug']:.2f} µg\n"
-                    f"Volume Fármaco: {resultados['volume_farmaco_ml']:.4f} ml"
-                )
-                self.formula_text.config(state=tk.NORMAL)
-                self.formula_text.delete(1.0, tk.END)
-                self.formula_text.insert(tk.END, details)
-                self.formula_text.config(state=tk.DISABLED)
+                # Calcular e exibir resultados por fármaco
+                for farmaco in farmacos:
+                    dose_total_mcg = calcular_dose_total(
+                        farmaco.dose, farmaco.unidade_dose, peso, duracao_h
+                    )
+                    volume_farmaco = calcular_volume_farmaco(
+                        dose_total_mcg, farmaco.concentracao
+                    )
+                    
+                    self.farmaco_result_tree.insert('', 'end', values=(
+                        farmaco.nome,
+                        f"{farmaco.dose} {farmaco.unidade_dose}",
+                        f"{dose_total_mcg:.2f} mcg",
+                        f"{farmaco.concentracao} mg/ml",
+                        f"{volume_farmaco:.4f} ml"
+                    ))
                     
         except Exception as e:
             messagebox.showerror("Erro", f"Falha ao calcular infusão: {str(e)}")
-            import traceback
-            traceback.print_exc()
     def calcular_infusao_especifica(
         peso_kg: float, 
         dose_mcg_kg_h: float, 

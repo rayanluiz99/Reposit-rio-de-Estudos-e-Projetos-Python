@@ -194,3 +194,36 @@ def calcular_infusao_planilha(
         'dose_total_ug': round(dose_total_ug, 2),
         'volume_farmaco_ml': round(volume_farmaco_ml, 4)  # 4 casas decimais para pequenos volumes
     }
+
+def calcular_vazao(peso_kg: float, taxa_ml_kg_h: float) -> float:
+    """Calcula a vazão em ml/h"""
+    return peso_kg * taxa_ml_kg_h
+
+def calcular_duracao(volume_bolsa_ml: float, vazao_ml_h: float) -> float:
+    """Calcula a duração da infusão em horas"""
+    return volume_bolsa_ml / vazao_ml_h if vazao_ml_h > 0 else 0
+
+def calcular_gotas_min(vazao_ml_h: float, equipo_tipo: str) -> float:
+    """Calcula gotas por minuto"""
+    fator = 20 if equipo_tipo == "Macrogotas" else 60
+    return (vazao_ml_h * fator) / 60
+
+def calcular_dose_total(dose: float, unidade: str, peso_kg: float, duracao_h: float) -> float:
+    """Calcula a dose total em mcg"""
+    # Converter para mcg/kg/h se necessário
+    if "mg" in unidade:
+        dose_mcg = dose * 1000
+    else:
+        dose_mcg = dose
+    
+    if "/min" in unidade:
+        dose_mcg_h = dose_mcg * 60
+    else:
+        dose_mcg_h = dose_mcg
+    
+    return dose_mcg_h * peso_kg * duracao_h
+
+def calcular_volume_farmaco(dose_total_mcg: float, concentracao_mg_ml: float) -> float:
+    """Calcula o volume do fármaco em ml"""
+    concentracao_mcg_ml = concentracao_mg_ml * 1000
+    return dose_total_mcg / concentracao_mcg_ml if concentracao_mcg_ml > 0 else 0
