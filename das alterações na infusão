@@ -1,0 +1,140 @@
+[1mdiff --git a/anestesia_vet/app.py b/anestesia_vet/app.py[m
+[1mindex f0cf0e1a..123497f7 100644[m
+[1m--- a/anestesia_vet/app.py[m
+[1m+++ b/anestesia_vet/app.py[m
+[36m@@ -24,7 +24,12 @@[m [mfrom controllers.config_infusao_controller import ([m
+     calcular_infusao_especifica,[m
+     calcular_infusao_continua,[m
+     calcular_taxas,[m
+[31m-    calcular_infusao_planilha[m
+[32m+[m[32m    calcular_infusao_planilha,[m
+[32m+[m[32m    calcular_vazao,[m
+[32m+[m[32m    calcular_gotas_min,[m
+[32m+[m[32m    calcular_dose_total,[m
+[32m+[m[32m    calcular_volume_farmaco,[m
+[32m+[m[32m    calcular_duracao[m
+ )[m
+ from controllers.sessao_controller import ([m
+     registrar_sessao,[m
+[36m@@ -51,18 +56,18 @@[m [mfrom sqlmodel import Session, select[m
+ [m
+ [m
+ def formatar_duracao(horas: float) -> str:[m
+[31m-        """Formata um tempo em horas (decimal) para horas e minutos."""[m
+[31m-        horas_inteiras = int(horas)[m
+[31m-        minutos = int((horas - horas_inteiras) * 60)[m
+[31m-        [m
+[31m-        if horas_inteiras > 0 and minutos > 0:[m
+[31m-            return f"{horas_inteiras}h {minutos}min"[m
+[31m-        elif horas_inteiras > 0:[m
+[31m-            return f"{horas_inteiras}h"[m
+[31m-        elif minutos > 0:[m
+[31m-            return f"{minutos}min"[m
+[31m-        else:[m
+[31m-            return "0min"[m
+[32m+[m[32m    """Formata um tempo em horas (decimal) para horas e minutos."""[m
+[32m+[m[32m    horas_inteiras = int(horas)[m
+[32m+[m[32m    minutos = int((horas - horas_inteiras) * 60)[m
+[32m+[m[41m    [m
+[32m+[m[32m    if horas_inteiras > 0 and minutos > 0:[m
+[32m+[m[32m        return f"{horas_inteiras}h {minutos}min"[m
+[32m+[m[32m    elif horas_inteiras > 0:[m
+[32m+[m[32m        return f"{horas_inteiras}h"[m
+[32m+[m[32m    elif minutos > 0:[m
+[32m+[m[32m        return f"{minutos}min"[m
+[32m+[m[32m    else:[m
+[32m+[m[32m        return "0min"[m
+ [m
+ class VetAnesthesiaApp:[m
+     def __init__(self, root):[m
+[36m@@ -1163,13 +1168,24 @@[m [mclass VetAnesthesiaApp:[m
+         self.infusion_equipo = ttk.Combobox(form_frame, values=["Macrogotas (20 gts/ml)", "Microgotas (60 gts/ml)"], width=20)[m
+         self.infusion_equipo.grid(row=5, column=1, sticky='w', padx=5, pady=2)[m
+         self.infusion_equipo.current(0)[m
+[31m-        [m
+[32m+[m[32m        # Novo campo: Taxa de infusão (ml/kg/h)[m
+[32m+[m[32m        ttk.Label(form_frame, text="Taxa (ml/kg/h):").grid(row=4, column=0, sticky='e', padx=5, pady=2)[m
+[32m+[m[32m        self.infusion_taxa = ttk.Entry(form_frame, width=10)[m
+[32m+[m[32m        self.infusion_taxa.grid(row=4, column=1, sticky='w', padx=5, pady=2)[m
+[32m+[m[32m        self.infusion_taxa.insert(0, "10")  # Valor padrão[m
+[32m+[m
+[32m+[m[32m        # Novo campo: Equipo[m
+[32m+[m[32m        ttk.Label(form_frame, text="Equipo:").grid(row=5, column=0, sticky='e', padx=5, pady=2)[m
+[32m+[m[32m        self.infusion_equipo = ttk.Combobox(form_frame, values=["Macrogotas", "Microgotas"], width=15)[m
+[32m+[m[32m        self.infusion_equipo.grid(row=5, column=1, sticky='w', padx=5, pady=2)[m
+[32m+[m[32m        self.infusion_equipo.current(0)[m
+[32m+[m
+         # Modo de cálculo[m
+[31m-        ttk.Label(form_frame, text="Modo de cálculo:").grid(row=6, column=0, sticky='e', padx=5, pady=2)[m
+[31m-        self.infusion_modo = ttk.Combobox(form_frame, values=["Taxa (ml/h) - Baseado no Peso", "Solução - Preparar Mistura"], width=30)[m
+[31m-        self.infusion_modo.grid(row=6, column=1, sticky='w', padx=5, pady=2)[m
+[31m-        self.infusion_modo.current(0)[m
+[31m-        self.infusion_modo.bind("<<ComboboxSelected>>", self.toggle_infusion_fields)[m
+[32m+[m[32m        # ttk.Label(form_frame, text="Modo de cálculo:").grid(row=6, column=0, sticky='e', padx=5, pady=2)[m
+[32m+[m[32m        # self.infusion_modo = ttk.Combobox(form_frame, values=["Taxa (ml/h) - Baseado no Peso", "Solução - Preparar Mistura"], width=30)[m
+[32m+[m[32m        # self.infusion_modo.grid(row=6, column=1, sticky='w', padx=5, pady=2)[m
+[32m+[m[32m        # self.infusion_modo.current(0)[m
+[32m+[m[32m        # self.infusion_modo.bind("<<ComboboxSelected>>", self.toggle_infusion_fields)[m
+         # Botão de cálculo[m
+         btn_frame = ttk.Frame(form_frame)[m
+         btn_frame.grid(row=7, column=0, columnspan=2, pady=10)[m
+[36m@@ -1190,6 +1206,24 @@[m [mclass VetAnesthesiaApp:[m
+         ttk.Label(results_frame, text="Duração estimada:").grid(row=2, column=0, sticky='e', padx=5, pady=2)[m
+         self.result_duracao = ttk.Label(results_frame, text="")[m
+         self.result_duracao.grid(row=2, column=1, sticky='w', padx=5, pady=2)[m
+[32m+[m
+[32m+[m[32m        ttk.Label(results_frame, text="Vazão (ml/h):").grid(row=3, column=0, sticky='e', padx=5, pady=2)[m
+[32m+[m[32m        self.result_vazao = ttk.Label(results_frame, text="")[m
+[32m+[m[32m        self.result_vazao.grid(row=3, column=1, sticky='w', padx=5, pady=2)[m
+[32m+[m
+[32m+[m[32m        # Tabela para resultados dos fármacos[m
+[32m+[m[32m        farmaco_frame = ttk.LabelFrame(form_frame, text="Cálculos por Fármaco", padding=10)[m
+[32m+[m[32m        farmaco_frame.grid(row=9, column=0, columnspan=2, sticky='ew', pady=5)[m
+[32m+[m[41m        [m
+[32m+[m[32m        columns = ("Fármaco", "Dose", "Dose Total", "Concentração", "Volume")[m
+[32m+[m[32m        self.farmaco_result_tree = ttk.Treeview(farmaco_frame, columns=columns, show='headings', height=5)[m
+[32m+[m[41m        [m
+[32m+[m[32m        for col in columns:[m
+[32m+[m[32m            self.farmaco_result_tree.heading(col, text=col)[m
+[32m+[m[32m            self.farmaco_result_tree.column(col, width=100, anchor='center')[m
+[32m+[m[41m        [m
+[32m+[m[32m        self.farmaco_result_tree.pack(fill='both', expand=True)[m
+[32m+[m
+         [m
+         # Carregar fármacos[m
+         self.load_farmacos_infusao()[m
+[36m@@ -1697,53 +1731,56 @@[m [mclass VetAnesthesiaApp:[m
+             # Obter valores dos campos[m
+             try:[m
+                 peso = float(self.infusion_peso.get())[m
+[31m-                taxa = float(self.infusion_taxa.get())  # Nova entrada: taxa ml/kg/h[m
+[32m+[m[32m                taxa = float(self.infusion_taxa.get())[m
+                 volume_bolsa = float(self.infusion_volume.get())[m
+[32m+[m[32m                equipo = self.infusion_equipo.get()[m
+[32m+[m[41m                [m
+                 if peso <= 0 or volume_bolsa <= 0 or taxa <= 0:[m
+                     raise ValueError("Valores devem ser positivos")[m
+             except:[m
+                 messagebox.showerror("Erro", "Digite valores válidos para peso, taxa e volume")[m
+                 return[m
+             [m
+[31m-            equipo = self.infusion_equipo.get()[m
+[31m-            equipo_tipo = "microgotas" if "Micro" in equipo else "macrogotas"[m
+[32m+[m[32m            # Calcular valores gerais[m
+[32m+[m[32m            vazao_ml_h = calcular_vazao(peso, taxa)[m
+[32m+[m[32m            duracao_h = calcular_duracao(volume_bolsa, vazao_ml_h)[m
+[32m+[m[32m            gotas_min = calcular_gotas_min(vazao_ml_h, equipo)[m
+             [m
+[32m+[m[32m            # Exibir resultados gerais[m
+[32m+[m[32m            self.result_vazao.config(text=f"{vazao_ml_h:.2f} ml/h")[m
+[32m+[m[32m            self.result_taxa.config(text=f"{taxa} ml/kg/h")[m
+[32m+[m[32m            self.result_gotas.config(text=f"{gotas_min:.2f} gts/min")[m
+[32m+[m[32m            self.result_duracao.config(text=formatar_duracao(duracao_h))[m
+[32m+[m[41m            [m
+[32m+[m[32m            # Obter todos os fármacos de infusão contínua[m
+             with Session(engine) as session:[m
+[31m-                farmaco = session.get(Farmaco, farmaco_id)[m
+[31m-                if not farmaco:[m
+[31m-                    messagebox.showerror("Erro", "Fármaco não encontrado!")[m
+[31m-                    return[m
+[31m-              
