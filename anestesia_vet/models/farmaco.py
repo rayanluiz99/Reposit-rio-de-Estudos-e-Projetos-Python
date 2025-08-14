@@ -11,4 +11,5 @@ class Farmaco(SQLModel, table=True):
     volume_seringa: Optional[float] = None
     comentario: Optional[str] = None
     tipo_infusao: str = "padrao"  # padrao, especifica, vasoativo
-    doses_variaveis: str = ""  # Ex: "0.1,0.2,0.3,0.4,0.5"
+    doses_variaveis: Optional[str] = Field(default="", nullable=True) 
+

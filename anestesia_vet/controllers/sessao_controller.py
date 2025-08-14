@@ -35,16 +35,16 @@ def registrar_sessao():
             if farmaco.modo_uso not in ["bolus", "infusão contínua"]:
                 print(f"Modo de uso inválido para {farmaco.nome}")
                 return
+            config = None
             if farmaco.modo_uso == "infusão contínua":
-                # Obter tipo de cálculo
-                modo_calculo = "peso"  # Padrão
+                modo_calculo = "peso"
                 if farmaco.tipo_infusao == "vasoativo":
                     modo_calculo = "volume"
                 
                 config = criar_config_infusao(
                     session=session,
                     peso_kg=peso,
-                    volume_bolsa_ml=250.0,  # Valor padrão para vasoativos
+                    volume_bolsa_ml=250.0,
                     equipo_tipo="microgotas",
                     modo_calculo=modo_calculo
                 )
@@ -100,12 +100,14 @@ def registrar_sessao():
                         print("Digite um valor numérico válido.")
 
                 # Registrar sessão
+                # Agora criamos a sessão COM a configuração
                 sessao = SessaoAnestesia(
                     id_animal=id_animal,
                     id_farmaco=id_farmaco,
                     dose_utilizada_ml=dose,
                     observacoes=input("Observações (opcional): ") or None,
-                    data=datetime.now(timezone.utc)
+                    data=datetime.now(timezone.utc),
+                    config_infusao_id=config.id if config else None  # Adicionado aqui
                 )
                 
                 session.add(sessao)
